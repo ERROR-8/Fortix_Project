@@ -1,4 +1,4 @@
-const Inventory = require(`../modules/inventory`);
+const Inventory = require(`../modules/admin/inventory`);
 
 exports.createInventory = async(req,res) => {
     try {
