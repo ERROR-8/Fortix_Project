@@ -4,6 +4,7 @@ const dotenv = require(`dotenv`);
 const connectdb = require(`./config/db`);
 const inventoryRoutes = require(`./routes/inventoryRoutes`);
 const userRoutes = require(`./routes/userRoutes`);
+const vendorRoutes =require(`./routes/vendorRoutes`);
 
 dotenv.config();
 const app = express();
@@ -22,3 +23,4 @@ app.listen(port, () =>{
 
 app.use("/api/inventory",inventoryRoutes);
 app.use("/api/user",userRoutes);
+app.use("/api/vendor",vendorRoutes);
