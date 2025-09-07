@@ -7,6 +7,6 @@ const inventorySchema = new mongoose.Schema({
     sellingPrice: { type: Number, required: true},
     expDate: { type: String, required: true},
     quantity: { type: Number, required: true},
-})
+});
 
 module.exports = mongoose.model("Inventory",inventorySchema);
