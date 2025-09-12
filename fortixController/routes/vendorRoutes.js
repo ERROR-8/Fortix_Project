@@ -4,7 +4,7 @@ const vctrl = require("../controller/vendorController");
 
 router.get("/",vctrl.getVendor);
 router.post("/",vctrl.createVendor);
-router.put("/",vctrl.updateVendor);
-router.delete("/",vctrl.deleteVendor);
+router.put("/:id",vctrl.updateVendor);
+router.delete("/:id",vctrl.deleteVendor);
 
 module.exports = router;
