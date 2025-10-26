@@ -1,0 +1,54 @@
+.inventory-page {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.inventory-item {
+  border-bottom: 1px solid #dee2e6;
+}
+
+.inventory-item:last-child {
+  border-bottom: none;
+}
+
+.inventory-item-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 0.8fr 1fr 1fr 0.8fr 1.2fr;
+  gap: 1rem;
+  padding: 1rem;
+  align-items: center;
+}
+
+.item-image {
+  width: 50px;
+  height: 50px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.item-info {
+  min-width: 0;
+}
+
+.inventory-item-details {
+  background-color: #f8f9fa;
+  padding: 1.5rem;
+  margin: 0 1rem 1rem 1rem;
+  border-radius: 8px;
+}
+
+.detail-label {
+  font-size: 0.75rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.inventory-item:hover .inventory-item-header {
+  background-color: #f8f9fa;
+}
