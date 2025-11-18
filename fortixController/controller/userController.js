@@ -1,11 +1,52 @@
 const User = require(`../modules/admin/user`);
+const bcrypt = require('bcryptjs');
 
-exports.createUser = async(req,res) => {
+exports.registerUser = async(req,res) => {
     try {
-        const user = await User.create(req.body);
-        res.json(user);
+        const { name, email, password } = req.body;
+        if (!name || !email || !password) {
+            return res.status(400).json({ message: 'Please enter all fields' });
+        }
+        const userExists = await User.findOne({ email });
+        if (userExists) {
+            return res.status(400).json({ message: 'User already exists' });
+        }
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        const user = await User.create({
+            name,
+            email,
+            password: hashedPassword,
+        });
+        res.status(201).json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+        });
     } catch(err) {
-        res.json(err);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+exports.loginUser = async(req,res) => {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Please enter all fields' });
+        }
+        const user = await User.findOne({ email });
+        if (user && (await bcrypt.compare(password, user.password))) {
+            res.json({
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                success: true,
+            });
+        } else {
+            res.status(401).json({ message: 'Invalid credentials', success: false });
+        }
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
@@ -13,7 +54,8 @@ exports.getuser = async(req,res) => {
     try {
         const user = await User.find();
         res.json(user);
-    } catch(err) {
+    }
+    catch(err) {
         res.json(err);
     }
 };
