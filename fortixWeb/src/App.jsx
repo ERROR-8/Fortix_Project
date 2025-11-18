@@ -6,6 +6,7 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
+import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Stock from './pages/Stock';
 import Inventory from './pages/Inventory';
@@ -33,8 +34,8 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <Routes>
-                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                    <Route path="/home" element={<Dashboard />} />
+                    <Route path="/" element={<Navigate to="/home" replace />} />
+                    <Route path="/home" element={<Home />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/stock" element={<Stock />} />
                     <Route path="/inventory" element={<Inventory />} />

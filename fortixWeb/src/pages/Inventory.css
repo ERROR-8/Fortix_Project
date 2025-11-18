@@ -3,6 +3,34 @@
   margin: 0 auto;
 }
 
+.search-box {
+  position: relative;
+  flex: 1;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding-left: 3rem !important;
+  padding-right: 1rem;
+  border-radius: 50px;
+  border: 1px solid #dee2e6;
+}
+
+.search-input:focus {
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+  border-color: #86b7fe;
+}
+
 .inventory-item {
   border-bottom: 1px solid #dee2e6;
 }

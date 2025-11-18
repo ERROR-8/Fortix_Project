@@ -17,23 +17,21 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(false);
   }, []);
 
-  const login = (email, password) => {
-    // Mock authentication - replace with actual API call
-    const mockUser = {
-      id: 1,
-      name: 'John Doe',
-      email: email,
-      role: 'Admin'
-    };
+  const login = async (email, password) => {
+    try {
+      const response = await axios.post('/api/users/login', { email, password });
+      const userData = response.data;
 
-    // Simple validation
-    if (email && password) {
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      setUser(mockUser);
-      setIsAuthenticated(true);
-      return { success: true };
+      if (userData) {
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
+        setIsAuthenticated(true);
+        return { success: true };
+      }
+      return { success: false, error: 'Invalid credentials' };
+    } catch (error) {
+      return { success: false, error: error.response?.data?.message || 'An error occurred' };
     }
-    return { success: false, error: 'Invalid credentials' };
   };
 
   const register = (userData) => {

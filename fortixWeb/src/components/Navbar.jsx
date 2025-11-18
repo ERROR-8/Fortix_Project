@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
+  FaHome,
   FaUser, 
   FaShoppingBag, 
   FaTh, 
@@ -23,7 +24,7 @@ const Navbar = () => {
     const path = location.pathname;
     const titles = {
       '/dashboard': { title: 'Dashboard', icon: <FaTh /> },
-      '/home': { title: 'Dashboard', icon: <FaTh /> },
+      '/home': { title: 'Home', icon: <FaHome /> },
       '/stock': { title: 'Stock Management', icon: <FaShoppingBag /> },
       '/inventory': { title: 'Inventory Details', icon: <FaClipboardList /> },
       '/users': { title: 'User Management', icon: <FaUsersIcon /> },
