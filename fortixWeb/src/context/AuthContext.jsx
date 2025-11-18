@@ -17,38 +17,48 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(false);
   }, []);
 
-  const login = (email, password) => {
-    // Mock authentication - replace with actual API call
-    const mockUser = {
-      id: 1,
-      name: 'John Doe',
-      email: email,
-      role: 'Admin'
-    };
-
-    // Simple validation
-    if (email && password) {
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      setUser(mockUser);
-      setIsAuthenticated(true);
-      return { success: true };
+  const login = async (email, password) => {
+    try {
+      const res = await fetch('/api/user/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        localStorage.setItem('user', JSON.stringify(data));
+        setUser(data);
+        setIsAuthenticated(true);
+        return { success: true };
+      }
+      return { success: false, error: data.message };
+    } catch (error) {
+      return { success: false, error: 'Something went wrong' };
     }
-    return { success: false, error: 'Invalid credentials' };
   };
 
-  const register = (userData) => {
-    // Mock registration - replace with actual API call
-    const newUser = {
-      id: Date.now(),
-      name: userData.name,
-      email: userData.email,
-      role: 'User'
-    };
-
-    localStorage.setItem('user', JSON.stringify(newUser));
-    setUser(newUser);
-    setIsAuthenticated(true);
-    return { success: true };
+  const register = async (userData) => {
+    try {
+      const res = await fetch('/api/user/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+      const data = await res.json();
+      if (res.status === 201) {
+        localStorage.setItem('user', JSON.stringify(data));
+        setUser(data);
+        setIsAuthenticated(true);
+        return { success: true };
+      }
+      return { success: false, error: data.message };
+    } catch (error) {
+      return { success: false, error: 'Something went wrong' };
+    }
   };
 
   const logout = () => {

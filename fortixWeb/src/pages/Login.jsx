@@ -6,7 +6,6 @@ import './Auth.css';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -24,6 +23,7 @@ const Login = () => {
     setError('');
   };
 
+  const { login } = useAuth();
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -44,17 +44,13 @@ const Login = () => {
       return;
     }
 
-    // Simulate API call delay
-    setTimeout(() => {
-      const result = login(formData.email, formData.password);
-      
-      if (result.success) {
-        navigate('/dashboard');
-      } else {
-        setError(result.error || 'Invalid email or password');
-      }
-      setIsLoading(false);
-    }, 1000);
+    const result = await login(formData.email, formData.password);
+    if (result.success) {
+      navigate('/dashboard');
+    } else {
+      setError(result.error || 'Invalid email or password');
+    }
+    setIsLoading(false);
   };
 
   return (

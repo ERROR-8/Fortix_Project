@@ -6,7 +6,6 @@ import './Auth.css';
 
 const Register = () => {
   const navigate = useNavigate();
-  const { register } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -28,6 +27,7 @@ const Register = () => {
     setError('');
   };
 
+  const { register } = useAuth();
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -67,17 +67,13 @@ const Register = () => {
       return;
     }
 
-    // Simulate API call delay
-    setTimeout(() => {
-      const result = register(formData);
-      
-      if (result.success) {
-        navigate('/dashboard');
-      } else {
-        setError(result.error || 'Registration failed');
-      }
-      setIsLoading(false);
-    }, 1000);
+    const result = await register(formData);
+    if (result.success) {
+      navigate('/dashboard');
+    } else {
+      setError(result.error || 'Registration failed');
+    }
+    setIsLoading(false);
   };
 
   return (
