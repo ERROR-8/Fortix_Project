@@ -22,7 +22,7 @@ const modalStyle = {
   boxShadow: '0 6px 18px rgba(0,0,0,0.2)'
 };
 
-export default function ConfirmModal({ show, title = 'Confirm', message = 'Are you sure?', onConfirm, onCancel }) {
+export default function ConfirmModal({ show, title = 'Confirm', message = 'Are you sure?', onConfirm, onCancel, confirmText = 'Delete' }) {
   if (!show) return null;
 
   return (
@@ -32,7 +32,7 @@ export default function ConfirmModal({ show, title = 'Confirm', message = 'Are y
         <p className="mb-4">{message}</p>
         <div className="d-flex justify-content-end gap-2">
           <button className="btn btn-secondary" onClick={onCancel}>Cancel</button>
-          <button className="btn btn-danger" onClick={onConfirm}>Delete</button>
+          <button className={`btn ${confirmText.toLowerCase() === 'delete' ? 'btn-danger' : 'btn-primary'}`} onClick={onConfirm}>{confirmText}</button>
         </div>
       </div>
     </div>

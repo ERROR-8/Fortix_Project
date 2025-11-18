@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FaUser, 
   FaEnvelope, 
@@ -14,19 +14,20 @@ import {
   FaShieldAlt
 } from 'react-icons/fa';
 import './Account.css';
+import { useAuth } from '../context/AuthContext';
 
 const Account = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [profileData, setProfileData] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@example.com',
-    phone: '+1 (555) 123-4567',
-    company: 'Fortix Inc.',
-    address: '123 Business Street',
-    city: 'New York',
-    state: 'NY',
-    zipCode: '10001',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    company: '',
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
     country: 'United States'
   });
 
@@ -47,6 +48,26 @@ const Account = () => {
     currency: 'USD',
     theme: 'light'
   });
+
+  const { user, updateProfile } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      const [firstName, ...rest] = (user.name || '').split(' ');
+      const lastName = rest.join(' ');
+      setProfileData(prev => ({
+        ...prev,
+        firstName: firstName || '',
+        lastName: lastName || '',
+        email: user.email || '',
+        company: user.company || ''
+      }));
+    }
+  }, [user]);
+
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const handleNotificationChange = (key) => {
     setNotifications(prev => ({
@@ -255,8 +276,28 @@ const Account = () => {
                 </div>
 
                 <div className="d-flex justify-content-end gap-2">
-                  <button className="btn btn-outline-secondary">Cancel</button>
-                  <button className="btn btn-primary">Save Changes</button>
+                  <button className="btn btn-outline-secondary" onClick={() => {
+                    // reset to user values
+                    if (user) {
+                      const [firstName, ...rest] = (user.name || '').split(' ');
+                      const lastName = rest.join(' ');
+                      setProfileData(prev => ({
+                        ...prev,
+                        firstName: firstName || '',
+                        lastName: lastName || '',
+                        email: user.email || '',
+                        company: user.company || ''
+                      }));
+                    }
+                  }}>Cancel</button>
+                  <button className="btn btn-primary" onClick={async () => {
+                    // perform update
+                    const name = `${profileData.firstName} ${profileData.lastName}`.trim();
+                    const updates = { name, email: profileData.email, company: profileData.company };
+                    const result = await updateProfile(user?._id, updates);
+                    if (!result.success) alert(result.error || 'Update failed');
+                    else alert('Profile updated');
+                  }}>Save Changes</button>
                 </div>
               </div>
             </div>
@@ -274,18 +315,28 @@ const Account = () => {
                   <div className="row g-3">
                     <div className="col-12">
                       <label className="form-label">Current Password</label>
-                      <input type="password" className="form-control" placeholder="Enter current password" />
+                      <input value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} type="password" className="form-control" placeholder="Enter current password" />
                     </div>
                     <div className="col-md-6">
                       <label className="form-label">New Password</label>
-                      <input type="password" className="form-control" placeholder="Enter new password" />
+                      <input value={newPassword} onChange={(e) => setNewPassword(e.target.value)} type="password" className="form-control" placeholder="Enter new password" />
                     </div>
                     <div className="col-md-6">
                       <label className="form-label">Confirm New Password</label>
-                      <input type="password" className="form-control" placeholder="Confirm new password" />
+                      <input value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} type="password" className="form-control" placeholder="Confirm new password" />
                     </div>
                     <div className="col-12">
-                      <button className="btn btn-primary">Update Password</button>
+                      <button className="btn btn-primary" onClick={async () => {
+                        if (!newPassword) return alert('Enter new password');
+                        if (newPassword !== confirmPassword) return alert('Passwords do not match');
+                        // Note: backend does not verify current password here — it will simply update
+                        const result = await updateProfile(user?._id, { password: newPassword });
+                        if (!result.success) alert(result.error || 'Password update failed');
+                        else {
+                          setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+                          alert('Password updated');
+                        }
+                      }}>Update Password</button>
                     </div>
                   </div>
                 </div>

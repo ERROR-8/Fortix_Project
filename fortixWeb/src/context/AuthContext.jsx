@@ -62,6 +62,22 @@ export const AuthProvider = ({ children }) => {
     return { success: true };
   };
 
+  const updateProfile = async (id, updates) => {
+    try {
+      const userId = id || (user && user._id);
+      if (!userId) return { success: false, error: 'Not authenticated' };
+      const res = await axios.put(`/api/user/${userId}`, updates);
+      const data = res.data;
+      // update local storage and context user
+      localStorage.setItem('user', JSON.stringify(data));
+      setUser(data);
+      return { success: true, data };
+    } catch (err) {
+      console.error('updateProfile error', err);
+      return { success: false, error: err.response?.data?.message || 'Update failed' };
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -71,7 +87,8 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         logout,
-        forgotPassword
+        forgotPassword,
+        updateProfile
       }}
     >
       {children}
