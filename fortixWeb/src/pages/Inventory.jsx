@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { FaSearch, FaFilter, FaPlus, FaEdit, FaTrash, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import './Inventory.css';
 
@@ -18,8 +19,8 @@ const Inventory = () => {
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/inventory');
-      const data = await res.json();
+      const res = await axios.get('/api/inventory');
+      const data = res.data;
       setItems(data);
     } catch (err) {
       console.error('Failed to fetch inventory', err);
@@ -57,11 +58,11 @@ const Inventory = () => {
   const handleDelete = async (id) => {
     if (!confirm('Delete this item?')) return;
     try {
-      const res = await fetch(`/api/inventory/${id}`, { method: 'DELETE' });
-      if (res.ok) {
+      const res = await axios.delete(`/api/inventory/${id}`);
+      if (res.status === 200 || res.status === 204) {
         setItems(items.filter(i => i._id !== id));
       } else {
-        console.error('Delete failed');
+        console.error('Delete failed', res.status);
       }
     } catch (err) {
       console.error(err);
@@ -78,34 +79,26 @@ const Inventory = () => {
 
     try {
       if (editing) {
-        const res = await fetch(`/api/inventory/${editing}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            productName: form.productName,
-            category: form.category,
-            purchasePrice: Number(form.purchasePrice) || 0,
-            sellingPrice: Number(form.sellingPrice) || 0,
-            expDate: form.expDate,
-            quantity: Number(form.quantity) || 0,
-          }),
+        const res = await axios.put(`/api/inventory/${editing}`, {
+          productName: form.productName,
+          category: form.category,
+          purchasePrice: Number(form.purchasePrice) || 0,
+          sellingPrice: Number(form.sellingPrice) || 0,
+          expDate: form.expDate,
+          quantity: Number(form.quantity) || 0,
         });
-        const updated = await res.json();
+        const updated = res.data;
         setItems(items.map(i => (i._id === updated._id ? updated : i)));
       } else {
-        const res = await fetch('/api/inventory', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            productName: form.productName,
-            category: form.category,
-            purchasePrice: Number(form.purchasePrice) || 0,
-            sellingPrice: Number(form.sellingPrice) || 0,
-            expDate: form.expDate,
-            quantity: Number(form.quantity) || 0,
-          }),
+        const res = await axios.post('/api/inventory', {
+          productName: form.productName,
+          category: form.category,
+          purchasePrice: Number(form.purchasePrice) || 0,
+          sellingPrice: Number(form.sellingPrice) || 0,
+          expDate: form.expDate,
+          quantity: Number(form.quantity) || 0,
         });
-        const created = await res.json();
+        const created = res.data;
         setItems([created, ...items]);
       }
       setShowForm(false);

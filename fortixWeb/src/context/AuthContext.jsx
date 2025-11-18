@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import axios from 'axios';
 
 const AuthContext = createContext(null);
 
@@ -19,14 +20,8 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const res = await fetch('/api/user/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
+      const res = await axios.post('/api/user/login', { email, password });
+      const data = res.data;
       if (data.success) {
         localStorage.setItem('user', JSON.stringify(data));
         setUser(data);
@@ -41,15 +36,9 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const res = await fetch('/api/user/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
-      const data = await res.json();
-      if (res.status === 201) {
+      const res = await axios.post('/api/user/register', userData);
+      const data = res.data;
+      if (res.status === 201 || data._id) {
         localStorage.setItem('user', JSON.stringify(data));
         setUser(data);
         setIsAuthenticated(true);
