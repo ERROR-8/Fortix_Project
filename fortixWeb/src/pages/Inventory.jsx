@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaSearch, FaFilter, FaPlus, FaEdit, FaTrash, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import './Inventory.css';
+import ConfirmModal from '../components/ConfirmModal';
 
 const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -56,17 +57,39 @@ const Inventory = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Delete this item?')) return;
+    // show modal confirmation instead
+    requestDelete(id);
+  };
+
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [toDeleteId, setToDeleteId] = useState(null);
+
+  const requestDelete = (id) => {
+    setToDeleteId(id);
+    setShowConfirm(true);
+  };
+
+  const onCancelDelete = () => {
+    setToDeleteId(null);
+    setShowConfirm(false);
+  };
+
+  const onConfirmDelete = async () => {
+    if (!toDeleteId) return onCancelDelete();
     try {
-      const res = await axios.delete(`/api/inventory/${id}`);
+      const res = await axios.delete(`/api/inventory/${toDeleteId}`);
       if (res.status === 200 || res.status === 204) {
-        setItems(items.filter(i => i._id !== id));
+        setItems(items.filter(i => i._id !== toDeleteId));
       } else {
         console.error('Delete failed', res.status);
+        alert('Delete failed');
       }
     } catch (err) {
       console.error(err);
+      alert('Delete failed');
     }
+    setShowConfirm(false);
+    setToDeleteId(null);
   };
 
   const handleSubmit = async (e) => {
@@ -235,6 +258,7 @@ const Inventory = () => {
           )}
         </div>
       </div>
+      <ConfirmModal show={showConfirm} title="Delete item" message="Are you sure you want to delete this inventory item?" onConfirm={onConfirmDelete} onCancel={onCancelDelete} />
     </div>
   );
 };
