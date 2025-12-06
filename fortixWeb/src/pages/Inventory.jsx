@@ -215,7 +215,7 @@ const Inventory = () => {
                       {item.quantity > 0 ? 'In Stock' : 'Out of Stock'}
                     </span>
                   </div>
-                  <div className="item-cost">${(item.sellingPrice || 0).toFixed(2)}</div>
+                  <div className="item-cost">₹{Number(item.sellingPrice || 0).toFixed(2)}</div>
                   <div className="item-warehouse">{item.category}</div>
                   <div className="item-actions">
                     <button className="btn btn-sm btn-link text-primary p-1 me-2" onClick={() => handleEdit(item)}>
@@ -236,11 +236,11 @@ const Inventory = () => {
                     <div className="row">
                       <div className="col-md-3">
                         <div className="detail-label">Purchase Price</div>
-                        <div className="fw-medium">${item.purchasePrice}</div>
+                        <div className="fw-medium">₹{Number(item.purchasePrice || 0).toFixed(2)}</div>
                       </div>
                       <div className="col-md-3">
                         <div className="detail-label">Selling Price</div>
-                        <div className="fw-medium">${item.sellingPrice}</div>
+                        <div className="fw-medium">₹{Number(item.sellingPrice || 0).toFixed(2)}</div>
                       </div>
                       <div className="col-md-3">
                         <div className="detail-label">Expiry Date</div>
