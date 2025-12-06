@@ -11,6 +11,7 @@ import Stock from './pages/Stock';
 import Inventory from './pages/Inventory';
 import Users from './pages/Users';
 import Reports from './pages/Reports';
+import Sales from './pages/Sales';
 import Account from './pages/Account';
 import Help from './pages/Help';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -38,6 +39,7 @@ function App() {
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/stock" element={<Stock />} />
                     <Route path="/inventory" element={<Inventory />} />
+                    <Route path="/sales" element={<Sales />} />
                     <Route path="/users" element={<Users />} />
                     <Route path="/reports" element={<Reports />} />
                     <Route path="/account" element={<Account />} />

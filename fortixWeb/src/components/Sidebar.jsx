@@ -17,13 +17,14 @@ import './Sidebar.css';
 const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
 
-  const menuItems = [
+    const menuItems = [
     { path: '/home', icon: <FaHome />, label: 'Home' },
     { path: '/dashboard', icon: <FaTh />, label: 'Dashboard' },
     { path: '/stock', icon: <FaArchive />, label: 'Stock' },
+    { path: '/sales', icon: <span style={{fontSize: '18px'}}>₹</span>, label: 'Sales' },
     { path: '/reports', icon: <FaChartBar />, label: 'Reports' },
-    { path: '/users', icon: <FaUsers />, label: 'Users' },
     { path: '/inventory', icon: <FaClipboardList />, label: 'Inventory' },
+    { path: '/users', icon: <FaUsers />, label: 'Users' },
   ];
 
   const bottomMenuItems = [
