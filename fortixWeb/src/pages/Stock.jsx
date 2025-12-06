@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FaSearch, FaPlus } from 'react-icons/fa';
+import { FaSearch, FaPlus, FaArrowRight } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 import './Stock.css';
 
 const Stock = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [highlightedProductId, setHighlightedProductId] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchProducts();
@@ -156,6 +159,20 @@ const Stock = () => {
                       <span className={getStatusClass(computeStatus(product.quantity ?? product.inStock ?? 0))}>
                         {computeStatus(product.quantity ?? product.inStock ?? 0)}
                       </span>
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-sm btn-link text-primary p-1"
+                        onClick={() => {
+                          // optional local highlight
+                          setHighlightedProductId(product._id || product.id);
+                          // navigate to inventory and pass product in route state
+                          navigate('/inventory', { state: { editProduct: product } });
+                        }}
+                        title="View in Inventory"
+                      >
+                        <FaArrowRight />
+                      </button>
                     </td>
                   </tr>
                 ))}

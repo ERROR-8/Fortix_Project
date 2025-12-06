@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { FaSearch, FaFilter, FaPlus, FaEdit, FaTrash, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import './Inventory.css';
@@ -7,6 +8,7 @@ import ConfirmModal from '../components/ConfirmModal';
 const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedItem, setExpandedItem] = useState(null);
+  const [highlightedItemId, setHighlightedItemId] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -16,6 +18,28 @@ const Inventory = () => {
   useEffect(() => {
     fetchItems();
   }, []);
+
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!location || !location.state || !location.state.editProduct) return;
+    const editProduct = location.state.editProduct;
+    if (!items || items.length === 0) return;
+    const found = items.find(i => i._id === editProduct._id || i.productName === editProduct.productName);
+    if (found) {
+      setExpandedItem(found._id);
+      setHighlightedItemId(found._id);
+      // clear history state so refresh doesn't re-expand
+      try { window.history.replaceState({}, document.title); } catch (e) {}
+      // scroll into view
+      setTimeout(() => {
+        const el = document.querySelector(`[data-inv-id="${found._id}"]`);
+        if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 150);
+      // remove highlight after a short delay
+      setTimeout(() => setHighlightedItemId(null), 3000);
+    }
+  }, [items, location]);
 
   const fetchItems = async () => {
     setLoading(true);
@@ -199,7 +223,7 @@ const Inventory = () => {
             <div className="p-3">Loading...</div>
           ) : (
             filteredItems.map((item) => (
-              <div key={item._id} className="inventory-item">
+              <div key={item._id} className="inventory-item" data-inv-id={item._id} style={{ backgroundColor: highlightedItemId === item._id ? '#e7f3ff' : 'transparent', transition: 'background-color 0.3s ease' }}>
                 <div className="inventory-item-header">
                   <div className="d-flex align-items-center flex-grow-1">
                     <div className="item-image me-3">📦</div>
