@@ -42,6 +42,57 @@ const Stock = () => {
     return 'In Stock';
   };
 
+  const parseDate = (d) => {
+    if (!d) return null;
+    if (typeof d === 'string') {
+      // Try YYYY-MM-DD format first
+      const toks = d.split(/[T ]/);
+      const datePart = toks[0];
+      if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+        const [y, m, day] = datePart.split('-').map(Number);
+        return new Date(y, m - 1, day);
+      }
+      // Try DD/MM/YYYY format
+      if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(datePart)) {
+        const [day, m, y] = datePart.split('/').map(Number);
+        return new Date(y, m - 1, day);
+      }
+    }
+    if (typeof d === 'number') {
+      const date = new Date(d);
+      return isNaN(date.getTime()) ? null : date;
+    }
+    const date = new Date(d);
+    return isNaN(date.getTime()) ? null : date;
+  };
+
+  const formatDate = (d) => {
+    const date = parseDate(d);
+    if (!date) return '-';
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const daysUntil = (d) => {
+    const date = parseDate(d);
+    if (!date) return null;
+    const today = new Date();
+    const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const diff = target.getTime() - start.getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  };
+
+  const expiryBadge = (expDate) => {
+    const days = daysUntil(expDate);
+    if (days === null) return null;
+    if (days < 0) return <span className="badge bg-danger">Expired</span>;
+    if (days <= 30) return <span className="badge bg-warning text-dark">Expiring Soon</span>;
+    return null;
+  };
+
   const filteredProducts = products.filter(product =>
     (product.productName || product.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (product.sku || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -73,10 +124,10 @@ const Stock = () => {
               <thead className="table-light">
                 <tr>
                   <th>PRODUCT NAME</th>
-                  <th>SKU</th>
                   <th>CATEGORY</th>
                   <th>IN STOCK</th>
                   <th>PRICE</th>
+                  <th>EXPIRY</th>
                   <th>STATUS</th>
                 </tr>
               </thead>
@@ -92,10 +143,15 @@ const Stock = () => {
                         <span>{product.productName || product.name}</span>
                       </div>
                     </td>
-                    <td>{product.sku || '-'}</td>
                     <td>{product.category || '-'}</td>
                     <td>{product.quantity ?? product.inStock ?? 0}</td>
                     <td>${((product.sellingPrice || product.price) ?? 0).toFixed(2)}</td>
+                    <td>
+                      <div>
+                        <div>{formatDate(product.expDate || product.expiry)}</div>
+                        <div className="mt-1">{expiryBadge(product.expDate || product.expiry)}</div>
+                      </div>
+                    </td>
                     <td>
                       <span className={getStatusClass(computeStatus(product.quantity ?? product.inStock ?? 0))}>
                         {computeStatus(product.quantity ?? product.inStock ?? 0)}
