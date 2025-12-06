@@ -6,7 +6,7 @@ import './Reports.css';
 const Reports = () => {
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [summary, setSummary] = useState({ totalSKUs: 0, totalQuantity: 0, totalValue: 0 });
+  const [summary, setSummary] = useState({ totalSKUs: 0, totalQuantity: 0, totalCost: 0, totalSell: 0 });
   const [lowStock, setLowStock] = useState([]);
   const [byCategory, setByCategory] = useState({});
 
@@ -30,24 +30,28 @@ const Reports = () => {
   const computeReports = (items) => {
     const totalSKUs = items.length;
     let totalQuantity = 0;
-    let totalValue = 0; // use purchasePrice * quantity as inventory cost
+    let totalCost = 0; // purchasePrice * quantity as inventory cost
+    let totalSell = 0; // sellingPrice * quantity as potential revenue
     const low = [];
     const cat = {};
 
     items.forEach((it) => {
       const qty = Number(it.quantity ?? 0);
-      const price = Number(it.purchasePrice ?? it.sellingPrice ?? 0);
+      const costPrice = Number(it.purchasePrice ?? 0);
+      const sellPrice = Number(it.sellingPrice ?? costPrice);
       totalQuantity += qty;
-      totalValue += qty * price;
+      totalCost += qty * costPrice;
+      totalSell += qty * sellPrice;
       if (qty <= 10) low.push(it);
       const c = it.category || 'Uncategorized';
-      if (!cat[c]) cat[c] = { count: 0, quantity: 0, value: 0 };
+      if (!cat[c]) cat[c] = { count: 0, quantity: 0, costValue: 0, sellValue: 0 };
       cat[c].count += 1;
       cat[c].quantity += qty;
-      cat[c].value += qty * price;
+      cat[c].costValue += qty * costPrice;
+      cat[c].sellValue += qty * sellPrice;
     });
 
-    setSummary({ totalSKUs, totalQuantity, totalValue });
+    setSummary({ totalSKUs, totalQuantity, totalCost, totalSell });
     setLowStock(low);
     setByCategory(cat);
   };
@@ -82,16 +86,69 @@ const Reports = () => {
             <div className="d-flex align-items-center gap-3">
               <div className="report-icon report-icon-yellow"><FaDollarSign /></div>
               <div>
-                <div className="text-muted">Inventory Value</div>
+                <div className="text-muted">Potential revenue</div>
                 {loading ? (
                   <h4>—</h4>
                 ) : (
                   <div>
-                    <h4>₹{summary.totalValue.toFixed(2)}</h4>
-                    <small className="text-muted">Total units: {summary.totalQuantity}</small>
+                    <h4>₹{summary.totalSell.toFixed(2)}</h4>
+                   
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="row mb-4">
+        <div className="col-12">
+          <div className="card">
+            <div className="card-body">
+              <h5 className="mb-3">Inventory Value Details</h5>
+              {loading ? (
+                <div>Loading…</div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>Product</th>
+                        <th>Unit Price</th>
+                        <th>Qty</th>
+                        <th>Cost Value</th>
+                        <th>Sell Value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {inventory.length === 0 && (
+                        <tr><td colSpan={4} className="text-muted">No inventory</td></tr>
+                      )}
+                      {inventory.map((it) => {
+                        const qty = Number(it.quantity ?? 0);
+                        const costPrice = Number(it.purchasePrice ?? 0);
+                        const sellPrice = Number(it.sellingPrice ?? costPrice);
+                        const costValue = costPrice * qty;
+                        const sellValue = sellPrice * qty;
+                        return (
+                          <tr key={it._id}>
+                            <td>{it.productName}</td>
+                            <td>₹{sellPrice.toFixed(2)}</td>
+                            <td>{qty}</td>
+                            <td>₹{costValue.toFixed(2)}</td>
+                            <td>₹{sellValue.toFixed(2)}</td>
+                          </tr>
+                        );
+                      })}
+                      <tr>
+                        <td colSpan={3}><strong>Total</strong></td>
+                        <td><strong>₹{summary.totalCost.toFixed(2)}</strong></td>
+                        <td><strong>₹{summary.totalSell.toFixed(2)}</strong></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -119,14 +176,19 @@ const Reports = () => {
                       {lowStock.length === 0 && (
                         <tr><td colSpan={4} className="text-muted">No low-stock items</td></tr>
                       )}
-                      {lowStock.map((it) => (
-                        <tr key={it._id}>
-                          <td>{it.productName}</td>
-                          <td>{it.category || '-'}</td>
-                          <td>{it.quantity ?? 0}</td>
-                          <td>{`₹ ${(Number(it.purchasePrice ?? it.sellingPrice ?? 0) * Number(it.quantity ?? 0)).toFixed(2)}`}</td>
-                        </tr>
-                      ))}
+                      {lowStock.map((it) => {
+                        const qty = Number(it.quantity ?? 0);
+                        const costPrice = Number(it.purchasePrice ?? 0);
+                        const costValue = qty * costPrice;
+                        return (
+                          <tr key={it._id}>
+                            <td>{it.productName}</td>
+                            <td>{it.category || '-'}</td>
+                            <td>{qty}</td>
+                            <td>{`₹ ${costValue.toFixed(2)}`}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -151,7 +213,7 @@ const Reports = () => {
                           <div className="fw-medium">{cat}</div>
                           <small className="text-muted">{data.count} SKUs • {data.quantity} units</small>
                         </div>
-                        <div>{`₹ ${data.value.toFixed(2)}`}</div>
+                        <div>{`₹ ${data.costValue.toFixed(2)}`}</div>
                       </li>
                     ))}
                   </ul>
