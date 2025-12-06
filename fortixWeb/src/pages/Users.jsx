@@ -10,7 +10,7 @@ const Users = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: '', email: '', password: '', company: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '', company: '' });
 
   useEffect(() => {
     fetchUsers();
@@ -31,13 +31,15 @@ const Users = () => {
 
   const handleAddClick = () => {
     setEditing(null);
-    setForm({ name: '', email: '', password: '', company: '' });
+    setForm({ firstName: '', lastName: '', email: '', password: '', company: '' });
     setShowForm(true);
   };
 
   const handleEdit = (u) => {
+    const [firstName, ...rest] = (u.name || '').split(' ');
+    const lastName = rest.join(' ');
     setEditing(u._id);
-    setForm({ name: u.name || '', email: u.email || '', password: '', company: u.company || '' });
+    setForm({ firstName: firstName || u.firstName || '', lastName: lastName || u.lastName || '', email: u.email || '', password: '', company: u.company || '' });
     setShowForm(true);
   };
 
@@ -76,27 +78,28 @@ const Users = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.email) {
-      alert('Name and email are required');
+    if (!form.firstName || !form.email) {
+      alert('First name and email are required');
       return;
     }
     try {
+      const name = `${form.firstName} ${form.lastName}`.trim();
       if (editing) {
         // Update user (password optional)
-        const payload = { name: form.name, email: form.email, company: form.company };
+        const payload = { name, firstName: form.firstName, lastName: form.lastName, email: form.email, company: form.company };
         if (form.password) payload.password = form.password;
         const res = await axios.put(`/api/user/${editing}`, payload);
         const updated = res.data;
         setUsers(users.map(u => (u._id === updated._id ? updated : u)));
       } else {
         // Register new user
-        const res = await axios.post('/api/user/register', { name: form.name, email: form.email, password: form.password, company: form.company });
+        const res = await axios.post('/api/user/register', { name, firstName: form.firstName, lastName: form.lastName, email: form.email, password: form.password, company: form.company });
         const created = res.data;
         setUsers([created, ...users]);
       }
       setShowForm(false);
       setEditing(null);
-      setForm({ name: '', email: '', password: '', company: '' });
+      setForm({ firstName: '', lastName: '', email: '', password: '', company: '' });
     } catch (err) {
       console.error('Save failed', err);
       alert(err.response?.data?.message || 'Save failed');
@@ -139,16 +142,19 @@ const Users = () => {
         <div className="card mb-4 p-3">
           <form onSubmit={handleSubmit}>
             <div className="row g-2">
-              <div className="col-md-3">
-                <input name="name" value={form.name} onChange={handleChange} className="form-control" placeholder="Full name" />
+              <div className="col-md-2">
+                <input name="firstName" value={form.firstName} onChange={handleChange} className="form-control" placeholder="First name" />
               </div>
-              <div className="col-md-3">
+              <div className="col-md-2">
+                <input name="lastName" value={form.lastName} onChange={handleChange} className="form-control" placeholder="Last name" />
+              </div>
+              <div className="col-md-2">
                 <input name="email" value={form.email} onChange={handleChange} className="form-control" placeholder="Email" type="email" />
               </div>
-              <div className="col-md-3">
+              <div className="col-md-2">
                 <input name="password" value={form.password} onChange={handleChange} className="form-control" placeholder="Password (leave blank to keep)" type="password" />
               </div>
-              <div className="col-md-3">
+              <div className="col-md-2">
                 <input name="company" value={form.company} onChange={handleChange} className="form-control" placeholder="Company" />
               </div>
             </div>

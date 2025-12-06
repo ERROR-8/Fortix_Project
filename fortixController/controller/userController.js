@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 
 exports.registerUser = async(req,res) => {
     try {
-        const { name, email, password } = req.body;
+        const { name, firstName, lastName, email, password, company } = req.body;
         if (!name || !email || !password) {
             return res.status(400).json({ message: 'Please enter all fields' });
         }
@@ -15,13 +15,19 @@ exports.registerUser = async(req,res) => {
         const hashedPassword = await bcrypt.hash(password, salt);
         const user = await User.create({
             name,
+            firstName,
+            lastName,
             email,
             password: hashedPassword,
+            company
         });
         res.status(201).json({
             _id: user._id,
             name: user.name,
+            firstName: user.firstName,
+            lastName: user.lastName,
             email: user.email,
+            company: user.company
         });
     } catch(err) {
         res.status(500).json({ message: 'Server error' });
@@ -39,7 +45,16 @@ exports.loginUser = async(req,res) => {
             res.json({
                 _id: user._id,
                 name: user.name,
+                firstName: user.firstName,
+                lastName: user.lastName,
                 email: user.email,
+                phone: user.phone,
+                company: user.company,
+                address: user.address,
+                city: user.city,
+                state: user.state,
+                zipCode: user.zipCode,
+                country: user.country,
                 success: true,
             });
         } else {
@@ -62,7 +77,15 @@ exports.getuser = async(req,res) => {
 
 exports.updateUser = async(req,res) => {
     try {
-        const user = await User.findByIdAndUpdate(req.params.id,req.body,{new:true});
+        const updateData = { ...req.body };
+        
+        // Hash password if it's being updated
+        if (updateData.password) {
+            const salt = await bcrypt.genSalt(10);
+            updateData.password = await bcrypt.hash(updateData.password, salt);
+        }
+        
+        const user = await User.findByIdAndUpdate(req.params.id, updateData, {new:true});
         res.json(user);
     } catch(err) {
         res.json(err);
