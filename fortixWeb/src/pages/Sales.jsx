@@ -1,62 +1,133 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FaShoppingCart } from 'react-icons/fa';
+import { FaShoppingCart, FaSearch, FaChartLine, FaStar, FaHistory } from 'react-icons/fa';
 
 const Sales = () => {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedId, setSelectedId] = useState('');
+  const [serialNumber, setSerialNumber] = useState('');
+  const [product, setProduct] = useState(null);
   const [quantity, setQuantity] = useState(1);
-  const [unitPrice, setUnitPrice] = useState(0);
   const [message, setMessage] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [salesData, setSalesData] = useState({
+    stats: { today: 0, week: 0, month: 0 },
+    topProducts: [],
+    recentSales: [],
+  });
+  const [salesLoading, setSalesLoading] = useState(true);
 
   useEffect(() => {
-    fetchProducts();
+    fetchSalesData();
   }, []);
 
-  const fetchProducts = async () => {
-    setLoading(true);
+  const fetchSalesData = async () => {
+    setSalesLoading(true);
     try {
-      const res = await axios.get('/api/inventory');
-      setProducts(res.data || []);
+      const res = await axios.get('/api/sales');
+      const sales = res.data || [];
+
+      // Assuming the backend returns sales sorted by date descending
+      const recentSales = sales.slice(0, 5);
+
+      // Calculate stats and top products
+      const { stats, topProducts } = processSales(sales);
+
+      setSalesData({ stats, topProducts, recentSales });
     } catch (err) {
-      console.error('Failed to load products for sales', err);
+      console.error('Failed to load sales data', err);
+      setMessage('Could not load sales analytics.');
     }
-    setLoading(false);
+    setSalesLoading(false);
   };
 
-  const onSelect = (id) => {
-    setSelectedId(id);
-    const p = products.find(x => (x._id || x.id) === id);
-    setUnitPrice(p ? Number(p.sellingPrice || p.price || 0) : 0);
+  const handleSearch = async () => {
+    if (!serialNumber) {
+      return setMessage('Please enter a serial number.');
+    }
+    setSearchLoading(true);
+    setMessage('');
+    setProduct(null);
+    try {
+      const res = await axios.get(`/api/inventory/serial/${serialNumber}`);
+      setProduct(res.data);
+    } catch (err) {
+      setProduct(null);
+      setMessage('Product not found.');
+      console.error('Failed to fetch product by serial number', err);
+    }
+    setSearchLoading(false);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedId) return setMessage('Select a product');
+    if (!product) return setMessage('Please fetch a product first.');
     const qty = Number(quantity || 0);
     if (qty <= 0) return setMessage('Enter a valid sold quantity');
 
     try {
-      // Get latest product
-      const res = await axios.get(`/api/inventory/${selectedId}`);
-      const prod = res.data;
-      const currentQty = Number(prod.quantity ?? 0);
-      if (qty > currentQty) return setMessage('Not enough stock');
+      const res = await axios.post('/api/sales', {
+        inventoryId: product._id,
+        quantitySold: qty,
+      });
 
-      const newQty = currentQty - qty;
-      const updateRes = await axios.put(`/api/inventory/${selectedId}`, { ...prod, quantity: newQty });
-      const updated = updateRes.data;
-      setMessage(`Sale recorded. Sold ${qty} units for ₹${(qty * unitPrice).toFixed(2)}. Remaining stock: ${updated.quantity}`);
-      // refresh products
-      fetchProducts();
+      const { updatedInventory } = res.data;
+      setProduct(updatedInventory);
+      setMessage(`Sale recorded. Sold ${qty} units. Remaining stock: ${updatedInventory.quantity}`);
+      setSerialNumber('');
+      setQuantity(1);
+      setProduct(null); // Clear product form
+      fetchSalesData(); // Refresh sales data
     } catch (err) {
       console.error(err);
-      setMessage('Sale failed');
+      setMessage(err.response?.data?.message || 'Sale failed');
     }
   };
 
-  const total = (Number(quantity || 0) * Number(unitPrice || 0)).toFixed(2);
+  const processSales = (sales) => {
+    const stats = { today: 0, week: 0, month: 0 };
+    const productMap = new Map();
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    sales.forEach(sale => {
+      const saleDate = new Date(sale.createdAt);
+      const saleTotal = (sale.inventory?.sellingPrice || 0) * sale.quantitySold;
+
+      if (saleDate >= today) {
+        stats.today += saleTotal;
+      }
+      if (saleDate >= startOfWeek) {
+        stats.week += saleTotal;
+      }
+      if (saleDate >= startOfMonth) {
+        stats.month += saleTotal;
+      }
+
+      if (sale.inventory) {
+        const { _id, productName } = sale.inventory;
+        if (productMap.has(_id)) {
+          productMap.get(_id).totalSold += sale.quantitySold;
+        } else {
+          productMap.set(_id, { productName, totalSold: sale.quantitySold });
+        }
+      }
+    });
+
+    const topProducts = Array.from(productMap.values())
+      .sort((a, b) => b.totalSold - a.totalSold)
+      .slice(0, 5);
+
+    return { stats, topProducts };
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+  };
+
 
   return (
     <div className="sales-page">
@@ -65,66 +136,153 @@ const Sales = () => {
       </div>
 
       <div className="card p-3 mb-4">
-        <form onSubmit={handleSubmit}>
-          <div className="row g-2 align-items-end">
-            <div className="col-md-5">
-              <label className="form-label">Product</label>
-              <select className="form-select" value={selectedId} onChange={(e) => onSelect(e.target.value)}>
-                <option value="">-- Select product --</option>
-                {products.map(p => (
-                  <option key={p._id || p.id} value={p._id || p.id}>{p.productName} • {p.category} • {p.quantity} in stock</option>
-                ))}
-              </select>
+        <h5 className="mb-3"><FaChartLine className="me-2" />Sales Overview</h5>
+        {salesLoading ? (<div>Loading stats...</div>) : (
+          <div className="row g-3">
+            <div className="col-md-4">
+              <div className="card text-center h-100">
+                <div className="card-body">
+                  <h6 className="card-subtitle mb-2 text-muted">Today's Sales</h6>
+                  <h4 className="card-title">₹{salesData.stats.today.toFixed(2)}</h4>
+                </div>
+              </div>
             </div>
-
-            <div className="col-md-2">
-              <label className="form-label">Quantity</label>
-              <input type="number" min="1" className="form-control" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+            <div className="col-md-4">
+              <div className="card text-center h-100">
+                <div className="card-body">
+                  <h6 className="card-subtitle mb-2 text-muted">This Week's Sales</h6>
+                  <h4 className="card-title">₹{salesData.stats.week.toFixed(2)}</h4>
+                </div>
+              </div>
             </div>
-
-            <div className="col-md-2">
-              <label className="form-label">Unit price (₹)</label>
-              <input type="number" min="0" step="0.01" className="form-control" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} />
-            </div>
-
-            <div className="col-md-2">
-              <label className="form-label">Total</label>
-              <div className="form-control">₹{total}</div>
-            </div>
-
-            <div className="col-md-1 text-end">
-              <button className="btn btn-success">Record</button>
+            <div className="col-md-4">
+              <div className="card text-center h-100">
+                <div className="card-body">
+                  <h6 className="card-subtitle mb-2 text-muted">This Month's Sales</h6>
+                  <h4 className="card-title">₹{salesData.stats.month.toFixed(2)}</h4>
+                </div>
+              </div>
             </div>
           </div>
-        </form>
+        )}
+      </div>
+
+      <div className="card p-3 mb-4">
+        <h5>Record a New Sale</h5>
+        <div className="row g-2 align-items-end">
+          <div className="col-md-5">
+            <label className="form-label">Serial Number</label>
+            <div className="input-group">
+              <input
+                type="text"
+                className="form-control"
+                value={serialNumber}
+                onChange={(e) => setSerialNumber(e.target.value)}
+                placeholder="Enter serial number"
+              />
+              <button className="btn btn-primary" onClick={handleSearch} disabled={searchLoading}>
+                {searchLoading ? '...' : <FaSearch />}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {message && <div className="alert alert-info">{message}</div>}
 
-      <div className="card">
-        <div className="card-body">
-          <h5>Current Inventory Snapshot</h5>
-          {loading ? (
-            <div>Loading…</div>
-          ) : (
-            <div className="table-responsive">
-              <table className="table table-sm">
-                <thead>
-                  <tr><th>Product</th><th>Category</th><th>Qty</th><th>Price (₹)</th></tr>
-                </thead>
-                <tbody>
-                  {products.map(p => (
-                    <tr key={p._id || p.id}>
-                      <td>{p.productName}</td>
-                      <td>{p.category}</td>
-                      <td>{p.quantity}</td>
-                      <td>₹{Number(p.sellingPrice || p.price || 0).toFixed(2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      {product && (
+        <div className="card p-3 mb-4">
+          <form onSubmit={handleSubmit}>
+            <h5>Product Details</h5>
+            <div className="row g-3">
+              <div className="col-md-4">
+                <strong>Product Name:</strong> {product.productName}
+              </div>
+              <div className="col-md-4">
+                <strong>Category:</strong> {product.category}
+              </div>
+              <div className="col-md-4">
+                <strong>In Stock:</strong> {product.quantity}
+              </div>
             </div>
-          )}
+            <div className="row g-2 align-items-end mt-3">
+              <div className="col-md-3">
+                <label className="form-label">Quantity to Sell</label>
+                <input
+                  type="number"
+                  min="1"
+                  className="form-control"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  max={product.quantity}
+                />
+              </div>
+              <div className="col-md-3">
+                <label className="form-label">Selling Price</label>
+                <div className="form-control">₹{product.sellingPrice.toFixed(2)}</div>
+              </div>
+              <div className="col-md-3">
+                <label className="form-label">Total</label>
+                <div className="form-control">₹{(quantity * product.sellingPrice).toFixed(2)}</div>
+              </div>
+              <div className="col-md-3 text-end">
+                <button className="btn btn-success" type="submit">Record Sale</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div className="row">
+        <div className="col-lg-6 mb-4">
+          <div className="card h-100">
+            <div className="card-body">
+              <h5 className="mb-3"><FaStar className="me-2" />Top Selling Products</h5>
+              {salesLoading ? (<div>Loading...</div>) : (
+                <ul className="list-group list-group-flush">
+                  {salesData.topProducts.length > 0 ? salesData.topProducts.map((p, index) => (
+                    <li key={index} className="list-group-item d-flex justify-content-between align-items-center">
+                      {p.productName}
+                      <span className="badge bg-primary rounded-pill">{p.totalSold} units</span>
+                    </li>
+                  )) : <li className="list-group-item">No sales data available.</li>}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="col-lg-6 mb-4">
+          <div className="card h-100">
+            <div className="card-body">
+              <h5 className="mb-3"><FaHistory className="me-2" />Recent Sales</h5>
+              {salesLoading ? (<div>Loading...</div>) : (
+                <div className="table-responsive">
+                  <table className="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th>Total</th>
+                        <th>Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {salesData.recentSales.length > 0 ? salesData.recentSales.map(sale => (
+                        <tr key={sale._id}>
+                          <td>{sale.inventory?.productName || 'N/A'}</td>
+                          <td>{sale.quantitySold}</td>
+                          <td>₹{((sale.inventory?.sellingPrice || 0) * sale.quantitySold).toFixed(2)}</td>
+                          <td>{formatDate(sale.createdAt)}</td>
+                        </tr>
+                      )) : (
+                        <tr><td colSpan="4" className="text-center">No recent sales.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -13,7 +13,7 @@ const Inventory = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ productName: '', category: '', purchasePrice: '', sellingPrice: '', expDate: '', quantity: '' });
+    const [form, setForm] = useState({ productName: '', serialNumber: '', category: '', purchasePrice: '', sellingPrice: '', expDate: '', quantity: '' });
 
   useEffect(() => {
     fetchItems();
@@ -61,16 +61,17 @@ const Inventory = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleAddClick = () => {
+    const handleAddClick = () => {
     setEditing(null);
-    setForm({ productName: '', category: '', purchasePrice: '', sellingPrice: '', expDate: '', quantity: '' });
+    setForm({ productName: '', serialNumber: '', category: '', purchasePrice: '', sellingPrice: '', expDate: '', quantity: '' });
     setShowForm(true);
   };
 
-  const handleEdit = (item) => {
+    const handleEdit = (item) => {
     setEditing(item._id);
     setForm({
       productName: item.productName || '',
+      serialNumber: item.serialNumber || '',
       category: item.category || '',
       purchasePrice: item.purchasePrice || '',
       sellingPrice: item.sellingPrice || '',
@@ -125,9 +126,10 @@ const Inventory = () => {
     }
 
     try {
-      if (editing) {
+            if (editing) {
         const res = await axios.put(`/api/inventory/${editing}`, {
           productName: form.productName,
+          serialNumber: form.serialNumber,
           category: form.category,
           purchasePrice: Number(form.purchasePrice) || 0,
           sellingPrice: Number(form.sellingPrice) || 0,
@@ -139,6 +141,7 @@ const Inventory = () => {
       } else {
         const res = await axios.post('/api/inventory', {
           productName: form.productName,
+          serialNumber: form.serialNumber,
           category: form.category,
           purchasePrice: Number(form.purchasePrice) || 0,
           sellingPrice: Number(form.sellingPrice) || 0,
@@ -150,14 +153,15 @@ const Inventory = () => {
       }
       setShowForm(false);
       setEditing(null);
-      setForm({ productName: '', category: '', purchasePrice: '', sellingPrice: '', expDate: '', quantity: '' });
+            setForm({ productName: '', serialNumber: '', category: '', purchasePrice: '', sellingPrice: '', expDate: '', quantity: '' });
     } catch (err) {
       console.error(err);
     }
   };
 
-  const filteredItems = items.filter(item =>
+    const filteredItems = items.filter(item =>
     item.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (item.serialNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (item.category || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -192,8 +196,11 @@ const Inventory = () => {
         <div className="card mb-4 p-3">
           <form onSubmit={handleSubmit}>
             <div className="row g-2">
-              <div className="col-md-4">
+                            <div className="col-md-4">
                 <input name="productName" value={form.productName} onChange={handleChange} className="form-control" placeholder="Product name" />
+              </div>
+              <div className="col-md-2">
+                <input name="serialNumber" value={form.serialNumber} onChange={handleChange} className="form-control" placeholder="Serial Number" />
               </div>
               <div className="col-md-2">
                 <input name="category" value={form.category} onChange={handleChange} className="form-control" placeholder="Category" />
@@ -227,12 +234,12 @@ const Inventory = () => {
                 <div className="inventory-item-header">
                   <div className="d-flex align-items-center flex-grow-1">
                     <div className="item-image me-3">📦</div>
-                    <div className="item-info">
+                                      <div className="item-info">
                       <div className="fw-medium">{item.productName}</div>
-                      <small className="text-muted">{item.category}</small>
+                      <small className="text-muted">{item.serialNumber}</small>
                     </div>
                   </div>
-                  <div className="item-sku">{item._id}</div>
+                  <div className="item-sku">{item.category}</div>
                   <div className="item-stock">{item.quantity}</div>
                   <div className="item-status">
                     <span className={`badge ${item.quantity > 0 ? 'bg-success' : 'bg-danger'}`}>
@@ -255,9 +262,13 @@ const Inventory = () => {
                 </div>
 
                 {expandedItem === item._id && (
-                  <div className="inventory-item-details">
+                                    <div className="inventory-item-details">
                     <h6 className="mb-3">Detailed Information</h6>
                     <div className="row">
+                      <div className="col-md-3">
+                        <div className="detail-label">Serial Number</div>
+                        <div className="fw-medium">{item.serialNumber}</div>
+                      </div>
                       <div className="col-md-3">
                         <div className="detail-label">Purchase Price</div>
                         <div className="fw-medium">₹{Number(item.purchasePrice || 0).toFixed(2)}</div>

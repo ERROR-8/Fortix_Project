@@ -6,6 +6,7 @@ const inventoryRoutes = require(`./routes/inventoryRoutes`);
 const userRoutes = require(`./routes/userRoutes`);
 const vendorRoutes =require(`./routes/vendorRoutes`);
 const seedRoutes = require(`./routes/seedRoutes`);
+const salesRoutes = require(`./routes/salesRoutes`);
 
 dotenv.config();
 const app = express();
@@ -26,3 +27,4 @@ app.use("/api/inventory",inventoryRoutes);
 app.use("/api/user",userRoutes);
 app.use("/api/vendor",vendorRoutes);
 app.use("/api/seed", seedRoutes);
+app.use("/api/sales", salesRoutes);
