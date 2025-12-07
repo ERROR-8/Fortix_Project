@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 
 exports.registerUser = async(req,res) => {
     try {
-        const { name, firstName, lastName, email, password, company } = req.body;
+        const { name, firstName, lastName, email, password, company, role } = req.body;
         if (!name || !email || !password) {
             return res.status(400).json({ message: 'Please enter all fields' });
         }
@@ -19,7 +19,8 @@ exports.registerUser = async(req,res) => {
             lastName,
             email,
             password: hashedPassword,
-            company
+            company,
+            role: role || 'cashier'
         });
         res.status(201).json({
             _id: user._id,
@@ -27,7 +28,8 @@ exports.registerUser = async(req,res) => {
             firstName: user.firstName,
             lastName: user.lastName,
             email: user.email,
-            company: user.company
+            company: user.company,
+            role: user.role
         });
     } catch(err) {
         res.status(500).json({ message: 'Server error' });
@@ -55,6 +57,7 @@ exports.loginUser = async(req,res) => {
                 state: user.state,
                 zipCode: user.zipCode,
                 country: user.country,
+                role: user.role,
                 success: true,
             });
         } else {

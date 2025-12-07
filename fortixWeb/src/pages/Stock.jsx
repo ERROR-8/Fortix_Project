@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FaSearch, FaPlus, FaArrowRight } from 'react-icons/fa';
+import { FaSearch, FaArrowRight } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import './Stock.css';
+import { useAuth } from '../context/AuthContext';
 
 const Stock = () => {
+  const { user: currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -129,7 +131,8 @@ const Stock = () => {
                   <th>PRODUCT NAME</th>
                   <th>CATEGORY</th>
                   <th>IN STOCK</th>
-                  <th>PRICE</th>
+                  {currentUser?.role !== 'cashier' && <th>COST PRICE</th>}
+                  <th>SELLING PRICE</th>
                   <th>EXPIRY</th>
                   <th>STATUS</th>
                 </tr>
@@ -148,7 +151,8 @@ const Stock = () => {
                     </td>
                     <td>{product.category || '-'}</td>
                     <td>{product.quantity ?? product.inStock ?? 0}</td>
-                    <td>${((product.sellingPrice || product.price) ?? 0).toFixed(2)}</td>
+                    {currentUser?.role !== 'cashier' && <td>₹{Number(product.purchasePrice || 0).toFixed(2)}</td>}
+                    <td>₹{Number((product.sellingPrice || product.price) ?? 0).toFixed(2)}</td>
                     <td>
                       <div>
                         <div>{formatDate(product.expDate || product.expiry)}</div>

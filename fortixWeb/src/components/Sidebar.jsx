@@ -13,9 +13,11 @@ import {
   FaBars
 } from 'react-icons/fa';
 import './Sidebar.css';
+import { useAuth } from '../context/AuthContext';
 
 const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
+  const { user: currentUser } = useAuth();
 
     const menuItems = [
     { path: '/home', icon: <FaHome />, label: 'Home' },
@@ -24,7 +26,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
     { path: '/sales', icon: <span style={{fontSize: '18px'}}>₹</span>, label: 'Sales' },
     { path: '/reports', icon: <FaChartBar />, label: 'Reports' },
     { path: '/inventory', icon: <FaClipboardList />, label: 'Inventory' },
-    { path: '/users', icon: <FaUsers />, label: 'Users' },
+    ...(currentUser?.role !== 'cashier' ? [{ path: '/users', icon: <FaUsers />, label: 'Users' }] : []),
   ];
 
   const bottomMenuItems = [

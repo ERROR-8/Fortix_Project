@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { FaSearch, FaFilter, FaUserPlus, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaSearch, FaUserPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import axios from 'axios';
 import './Users.css';
 import ConfirmModal from '../components/ConfirmModal';
+import { useAuth } from '../context/AuthContext';
 
 const Users = () => {
+  const { user: currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '', company: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '', company: '', role: 'cashier' });
 
   useEffect(() => {
     fetchUsers();
@@ -20,7 +22,19 @@ const Users = () => {
     setLoading(true);
     try {
       const res = await axios.get('/api/user');
-      setUsers(res.data || []);
+      let filteredData = res.data || [];
+      
+      // Role-based filtering
+      if (currentUser?.role === 'cashier') {
+        // Cashier cannot see users page - should be blocked by ProtectedRoute
+        filteredData = [];
+      } else if (currentUser?.role === 'manager') {
+        // Manager can only see cashier users
+        filteredData = filteredData.filter(u => u.role === 'cashier');
+      }
+      // Admin can see all users
+      
+      setUsers(filteredData);
     } catch (err) {
       console.error('Failed to fetch users', err);
     }
@@ -31,7 +45,7 @@ const Users = () => {
 
   const handleAddClick = () => {
     setEditing(null);
-    setForm({ firstName: '', lastName: '', email: '', password: '', company: '' });
+    setForm({ firstName: '', lastName: '', email: '', password: '', company: '', role: 'cashier' });
     setShowForm(true);
   };
 
@@ -39,7 +53,7 @@ const Users = () => {
     const [firstName, ...rest] = (u.name || '').split(' ');
     const lastName = rest.join(' ');
     setEditing(u._id);
-    setForm({ firstName: firstName || u.firstName || '', lastName: lastName || u.lastName || '', email: u.email || '', password: '', company: u.company || '' });
+    setForm({ firstName: firstName || u.firstName || '', lastName: lastName || u.lastName || '', email: u.email || '', password: '', company: u.company || '', role: u.role || 'cashier' });
     setShowForm(true);
   };
 
@@ -86,20 +100,20 @@ const Users = () => {
       const name = `${form.firstName} ${form.lastName}`.trim();
       if (editing) {
         // Update user (password optional)
-        const payload = { name, firstName: form.firstName, lastName: form.lastName, email: form.email, company: form.company };
+        const payload = { name, firstName: form.firstName, lastName: form.lastName, email: form.email, company: form.company, role: form.role };
         if (form.password) payload.password = form.password;
         const res = await axios.put(`/api/user/${editing}`, payload);
         const updated = res.data;
         setUsers(users.map(u => (u._id === updated._id ? updated : u)));
       } else {
         // Register new user
-        const res = await axios.post('/api/user/register', { name, firstName: form.firstName, lastName: form.lastName, email: form.email, password: form.password, company: form.company });
+        const res = await axios.post('/api/user/register', { name, firstName: form.firstName, lastName: form.lastName, email: form.email, password: form.password, company: form.company, role: form.role });
         const created = res.data;
         setUsers([created, ...users]);
       }
       setShowForm(false);
       setEditing(null);
-      setForm({ firstName: '', lastName: '', email: '', password: '', company: '' });
+      setForm({ firstName: '', lastName: '', email: '', password: '', company: '', role: 'cashier' });
     } catch (err) {
       console.error('Save failed', err);
       alert(err.response?.data?.message || 'Save failed');
@@ -132,10 +146,6 @@ const Users = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <button className="btn btn-outline-secondary">
-          <FaFilter className="me-2" />
-          Filter
-        </button>
       </div>
 
       {showForm && (
@@ -154,8 +164,15 @@ const Users = () => {
               <div className="col-md-2">
                 <input name="password" value={form.password} onChange={handleChange} className="form-control" placeholder="Password (leave blank to keep)" type="password" />
               </div>
-              <div className="col-md-2">
+              <div className="col-md-1">
                 <input name="company" value={form.company} onChange={handleChange} className="form-control" placeholder="Company" />
+              </div>
+              <div className="col-md-1">
+                <select name="role" value={form.role} onChange={handleChange} className="form-control">
+                  <option value="cashier">Cashier</option>
+                  <option value="manager">Manager</option>
+                  {currentUser?.role === 'admin' && <option value="admin">Admin</option>}
+                </select>
               </div>
             </div>
             <div className="mt-2 d-flex gap-2">
@@ -178,6 +195,7 @@ const Users = () => {
                     <th>Name</th>
                     <th>Email</th>
                     <th>Company</th>
+                    <th>Role</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -188,13 +206,18 @@ const Users = () => {
                         <div className="d-flex align-items-center">
                           <div className="user-avatar me-3">👤</div>
                           <div>
-                            <div className="fw-medium">{u.name}</div>
-                            <small className="text-muted">{u.email}</small>
+                            <div className="fw-medium">{u.firstName} {u.lastName}</div>
+                            
                           </div>
                         </div>
                       </td>
                       <td className="align-middle">{u.email}</td>
                       <td className="align-middle">{u.company || '-'}</td>
+                      <td className="align-middle">
+                        <span className={`badge bg-${u.role === 'admin' ? 'danger' : u.role === 'manager' ? 'warning' : 'info'}`}>
+                          {u.role?.charAt(0).toUpperCase() + u.role?.slice(1)}
+                        </span>
+                      </td>
                       <td className="align-middle">
                         <button className="btn btn-sm btn-link text-primary p-1 me-2" onClick={() => handleEdit(u)}>
                           <FaEdit />

@@ -5,8 +5,6 @@ import {
   FaPhone, 
   FaMapMarkerAlt, 
   FaBuilding,
-  FaEdit,
-  FaCamera,
   FaLock
 } from 'react-icons/fa';
 import './Account.css';
@@ -31,12 +29,10 @@ const Account = () => {
 
   useEffect(() => {
     if (user) {
-      const [firstName, ...rest] = (user.name || '').split(' ');
-      const lastName = rest.join(' ');
       setProfileData(prev => ({
         ...prev,
-        firstName: firstName || '',
-        lastName: lastName || '',
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
         email: user.email || '',
         company: user.company || '',
         phone: user.phone || '',
@@ -44,7 +40,7 @@ const Account = () => {
         city: user.city || '',
         state: user.state || '',
         zipCode: user.zipCode || '',
-        country: user.country || 'United States'
+        country: user.country || ''
       }));
     }
   }, [user]);
@@ -95,17 +91,10 @@ const Account = () => {
                     <div className="profile-avatar">
                       <FaUser />
                     </div>
-                    <button className="profile-picture-upload">
-                      <FaCamera />
-                    </button>
                   </div>
                   <div className="profile-picture-info">
                     <h5>{profileData.firstName} {profileData.lastName}</h5>
                     <p className="text-muted mb-2">{profileData.email}</p>
-                    <button className="btn btn-sm btn-outline-primary">
-                      <FaEdit className="me-2" />
-                      Change Photo
-                    </button>
                   </div>
                 </div>
 
@@ -243,12 +232,10 @@ const Account = () => {
                   <button className="btn btn-outline-secondary" onClick={() => {
                     // reset to user values
                     if (user) {
-                      const [firstName, ...rest] = (user.name || '').split(' ');
-                      const lastName = rest.join(' ');
                       setProfileData(prev => ({
                         ...prev,
-                        firstName: firstName || '',
-                        lastName: lastName || '',
+                        firstName: user.firstName || '',
+                        lastName: user.lastName || '',
                         email: user.email || '',
                         company: user.company || '',
                         phone: user.phone || '',

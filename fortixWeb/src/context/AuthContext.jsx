@@ -56,12 +56,6 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
   };
 
-  const forgotPassword = (email) => {
-    // Mock forgot password - replace with actual API call
-    console.log('Password reset email sent to:', email);
-    return { success: true };
-  };
-
   const updateProfile = async (id, updates) => {
     try {
       const userId = id || (user && user._id);
@@ -87,7 +81,6 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         logout,
-        forgotPassword,
         updateProfile
       }}
     >

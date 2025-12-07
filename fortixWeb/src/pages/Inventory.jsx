@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { FaSearch, FaFilter, FaPlus, FaEdit, FaTrash, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaSearch, FaPlus, FaEdit, FaTrash, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import './Inventory.css';
 import ConfirmModal from '../components/ConfirmModal';
+import { useAuth } from '../context/AuthContext';
 
 const Inventory = () => {
+  const { user: currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedItem, setExpandedItem] = useState(null);
   const [highlightedItemId, setHighlightedItemId] = useState(null);
@@ -169,10 +171,12 @@ const Inventory = () => {
     <div className="inventory-page">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="mb-0">Inventory List</h2>
-        <button className="btn btn-primary" onClick={handleAddClick}>
-          <FaPlus className="me-2" />
-          Add New Item
-        </button>
+        {currentUser?.role !== 'cashier' && (
+          <button className="btn btn-primary" onClick={handleAddClick}>
+            <FaPlus className="me-2" />
+            Add New Item
+          </button>
+        )}
       </div>
 
       <div className="d-flex gap-3 mb-4">
@@ -186,10 +190,6 @@ const Inventory = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <button className="btn btn-outline-secondary">
-          <FaFilter className="me-2" />
-          Filter
-        </button>
       </div>
 
       {showForm && (
@@ -249,12 +249,16 @@ const Inventory = () => {
                   <div className="item-cost">₹{Number(item.sellingPrice || 0).toFixed(2)}</div>
                   <div className="item-warehouse">{item.category}</div>
                   <div className="item-actions">
-                    <button className="btn btn-sm btn-link text-primary p-1 me-2" onClick={() => handleEdit(item)}>
-                      <FaEdit />
-                    </button>
-                    <button className="btn btn-sm btn-link text-danger p-1 me-2" onClick={() => handleDelete(item._id)}>
-                      <FaTrash />
-                    </button>
+                    {currentUser?.role !== 'cashier' && (
+                      <>
+                        <button className="btn btn-sm btn-link text-primary p-1 me-2" onClick={() => handleEdit(item)}>
+                          <FaEdit />
+                        </button>
+                        <button className="btn btn-sm btn-link text-danger p-1 me-2" onClick={() => handleDelete(item._id)}>
+                          <FaTrash />
+                        </button>
+                      </>
+                    )}
                     <button className="btn btn-sm btn-link text-secondary p-1" onClick={() => toggleExpand(item._id)}>
                       {expandedItem === item._id ? <FaChevronUp /> : <FaChevronDown />}
                     </button>
@@ -269,10 +273,12 @@ const Inventory = () => {
                         <div className="detail-label">Serial Number</div>
                         <div className="fw-medium">{item.serialNumber}</div>
                       </div>
-                      <div className="col-md-3">
-                        <div className="detail-label">Purchase Price</div>
-                        <div className="fw-medium">₹{Number(item.purchasePrice || 0).toFixed(2)}</div>
-                      </div>
+                      {currentUser?.role !== 'cashier' && (
+                        <div className="col-md-3">
+                          <div className="detail-label">Purchase Price</div>
+                          <div className="fw-medium">₹{Number(item.purchasePrice || 0).toFixed(2)}</div>
+                        </div>
+                      )}
                       <div className="col-md-3">
                         <div className="detail-label">Selling Price</div>
                         <div className="fw-medium">₹{Number(item.sellingPrice || 0).toFixed(2)}</div>

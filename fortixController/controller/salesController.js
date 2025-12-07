@@ -29,7 +29,16 @@ const createSale = async (req, res) => {
 
     await sale.save();
 
-    res.status(201).json({ sale, updatedInventory: inventoryItem });
+    // populate inventoryItem for response and shape to frontend expectations
+    const populatedSale = await Sale.findById(sale._id).populate('inventoryItem');
+    const shapedSale = {
+      _id: populatedSale._id,
+      inventory: populatedSale.inventoryItem,
+      quantitySold: populatedSale.quantitySold,
+      createdAt: populatedSale.saleDate || populatedSale.createdAt,
+    };
+
+    res.status(201).json({ sale: shapedSale, updatedInventory: inventoryItem });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
   }
@@ -37,8 +46,17 @@ const createSale = async (req, res) => {
 
 const getSales = async (req, res) => {
   try {
-    const sales = await Sale.find().populate('inventoryItem');
-    res.status(200).json(sales);
+    const sales = await Sale.find().populate('inventoryItem').sort({ saleDate: -1 });
+
+    // Shape each sale to match frontend expectations
+    const shaped = sales.map(s => ({
+      _id: s._id,
+      inventory: s.inventoryItem,
+      quantitySold: s.quantitySold,
+      createdAt: s.saleDate || s.createdAt,
+    }));
+
+    res.status(200).json(shaped);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
   }

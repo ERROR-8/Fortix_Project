@@ -150,9 +150,6 @@ const Login = () => {
                     Remember me
                   </label>
                 </div>
-                <Link to="/forgot-password" className="forgot-password-link">
-                  Forgot Password?
-                </Link>
               </div>
 
               <button
@@ -178,21 +175,6 @@ const Login = () => {
                   Sign Up
                 </Link>
               </p>
-            </div>
-
-            <div className="auth-divider">
-              <span>or continue with</span>
-            </div>
-
-            <div className="social-login">
-              <button className="btn btn-social btn-google">
-                <img src="https://www.google.com/favicon.ico" alt="Google" />
-                Google
-              </button>
-              <button className="btn btn-social btn-microsoft">
-                <img src="https://www.microsoft.com/favicon.ico" alt="Microsoft" />
-                Microsoft
-              </button>
             </div>
           </div>
         </div>

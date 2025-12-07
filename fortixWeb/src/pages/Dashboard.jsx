@@ -1,114 +1,108 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FaDollarSign, 
   FaUsers, 
   FaShoppingCart, 
   FaChartLine,
-  FaShoppingBag,
-  FaUserPlus,
-  FaBox,
-  FaCreditCard,
-  FaSearch,
-  FaBell
+  FaShoppingBag
 } from 'react-icons/fa';
 import './Dashboard.css';
+import axios from 'axios';
 
 const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState('Overview');
-  const [timeFilter, setTimeFilter] = useState('Week');
+  const [loading, setLoading] = useState(true);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [totalCustomers, setTotalCustomers] = useState(0);
+  const [avgOrderValue, setAvgOrderValue] = useState(0);
+  const [chartData, setChartData] = useState([]); // array of numbers for chart
+  const [activities, setActivities] = useState([]);
 
   const statCards = [
-    {
-      title: 'Total Revenue',
-      value: '$125,430',
-      icon: <FaDollarSign />,
-      color: 'blue'
-    },
-    {
-      title: 'New Customers',
-      value: '1,210',
-      icon: <FaUsers />,
-      color: 'green'
-    },
-    {
-      title: 'Average Order Value',
-      value: '$178.50',
-      icon: <FaShoppingCart />,
-      color: 'yellow'
-    },
-    {
-      title: 'Conversion Rate',
-      value: '3.45%',
-      icon: <FaChartLine />,
-      color: 'purple'
-    }
+    { title: 'Total Revenue', value: totalRevenue, icon: <FaDollarSign />, color: 'blue' },
+    { title: 'Customers', value: totalCustomers, icon: <FaUsers />, color: 'green' },
+    { title: 'Average Order', value: avgOrderValue, icon: <FaShoppingCart />, color: 'yellow' },
+    { title: 'Total Orders', value: totalOrders, icon: <FaChartLine />, color: 'purple' }
   ];
 
-  const activities = [
-    {
-      id: 1,
-      icon: <FaShoppingBag />,
-      title: 'New order #1245 placed by',
-      user: 'John Doe',
-      time: '2 minutes ago',
-      color: 'blue'
-    },
-    {
-      id: 2,
-      icon: <FaUserPlus />,
-      title: 'New user',
-      user: "'Jane Smith'",
-      description: 'signed up.',
-      time: '15 minutes ago',
-      color: 'green'
-    },
-    {
-      id: 3,
-      icon: <FaBox />,
-      title: 'Stock updated for',
-      user: "'Product X'",
-      time: '1 hour ago',
-      color: 'yellow'
-    },
-    {
-      id: 4,
-      icon: <FaCreditCard />,
-      title: 'Payment failed for order #1244.',
-      time: '2 hours ago',
-      color: 'red'
-    }
-  ];
+  
+
+
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const [invRes, salesRes, usersRes] = await Promise.all([
+          axios.get('/api/inventory'),
+          axios.get('/api/sales'),
+          axios.get('/api/user')
+        ]);
+
+        const inventory = invRes.data || [];
+        const sales = salesRes.data || [];
+        const users = usersRes.data || [];
+
+        // compute revenue and orders
+        let revenue = 0;
+        sales.forEach(s => {
+          const price = Number(s.inventory?.sellingPrice ?? 0);
+          const qty = Number(s.quantitySold ?? 0);
+          revenue += price * qty;
+        });
+
+        const orders = sales.length;
+        const customers = users.length;
+        const avg = orders > 0 ? revenue / orders : 0;
+
+        setTotalRevenue(revenue);
+        setTotalOrders(orders);
+        setTotalCustomers(customers);
+        setAvgOrderValue(avg);
+
+        // prepare 7-day chart data (from Mon..Sun)
+        const now = new Date();
+        const dayTotals = Array(7).fill(0);
+        sales.forEach(s => {
+          const d = new Date(s.createdAt);
+          const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const diffDays = Math.floor((base - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / (1000*60*60*24));
+          if (diffDays >=0 && diffDays < 7) {
+            const idx = 6 - diffDays; // 0..6 mapping Mon..Sun approx
+            dayTotals[idx] += (Number(s.inventory?.sellingPrice ?? 0) * Number(s.quantitySold ?? 0));
+          }
+        });
+        setChartData(dayTotals);
+
+        // activities: recent sales
+        const recent = (sales.slice(0,5)).map((s, i) => ({
+          id: i+1,
+          icon: <FaShoppingBag />,
+          title: `Sale recorded for`,
+          user: s.inventory?.productName || 'Item',
+          time: formatRelative(new Date(s.createdAt)),
+          color: 'blue'
+        }));
+        setActivities(recent);
+      } catch (err) {
+        console.error('Dashboard load failed', err);
+      }
+      setLoading(false);
+    };
+
+    load();
+  }, []);
+
+  const formatRelative = (date) => {
+    const diff = (Date.now() - date.getTime())/1000; // seconds
+    if (diff < 60) return `${Math.floor(diff)}s ago`;
+    if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+    return date.toLocaleString();
+  };
 
   return (
     <div className="dashboard-page">
-      {/* Search and Notifications */}
-      <div className="d-flex justify-content-end align-items-center mb-4 gap-3">
-        <div className="dashboard-search">
-          <FaSearch className="search-icon" />
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Search..."
-          />
-        </div>
-        <button className="btn btn-light position-relative">
-          <FaBell />
-          <span className="notification-badge"></span>
-        </button>
-      </div>
-
-      {/* Tabs */}
-      <div className="dashboard-tabs mb-4">
-        {['Overview', 'Sales', 'Customers', 'Products'].map((tab) => (
-          <button
-            key={tab}
-            className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab)}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
 
       {/* Stats Cards */}
       <div className="row g-4 mb-4">
@@ -121,7 +115,9 @@ const Dashboard = () => {
                 </div>
                 <div className="stat-content">
                   <div className="stat-label">{stat.title}</div>
-                  <div className="stat-value">{stat.value}</div>
+                  <div className="stat-value">{loading ? '—' : (
+                    stat.title === 'Total Revenue' || stat.title === 'Average Order' ? `₹${Number(stat.value || 0).toFixed(2)}` : stat.value
+                  )}</div>
                 </div>
               </div>
             </div>
@@ -135,20 +131,7 @@ const Dashboard = () => {
         <div className="col-lg-8">
           <div className="card">
             <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center mb-4">
-                <h5 className="mb-0">Sales Over Time</h5>
-                <div className="btn-group btn-group-sm">
-                  {['Day', 'Week', 'Month'].map((filter) => (
-                    <button
-                      key={filter}
-                      className={`btn ${timeFilter === filter ? 'btn-primary' : 'btn-outline-secondary'}`}
-                      onClick={() => setTimeFilter(filter)}
-                    >
-                      {filter}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <h5 className="mb-4">Sales Over Time</h5>
 
               {/* Chart Legend */}
               <div className="d-flex gap-3 mb-3">
@@ -169,16 +152,19 @@ const Dashboard = () => {
               {/* Simple Bar Chart */}
               <div className="chart-container">
                 <div className="chart-bars">
-                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
-                    <div key={day} className="chart-bar-group">
-                      <div className="chart-bar-stack">
-                        <div className="chart-bar" style={{height: `${60 + index * 10}%`, backgroundColor: '#4e73df'}}></div>
-                        <div className="chart-bar" style={{height: `${40 + index * 8}%`, backgroundColor: '#5a6fd8'}}></div>
-                        <div className="chart-bar" style={{height: `${30 + index * 6}%`, backgroundColor: '#7e8dd3'}}></div>
+                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => {
+                    const val = chartData[index] ?? 0;
+                    const baseMax = Math.max(...(chartData.length ? chartData : [1]));
+                    const height = baseMax > 0 ? Math.max(6, (val / baseMax) * 100) : 6;
+                    return (
+                      <div key={day} className="chart-bar-group">
+                        <div className="chart-bar-stack">
+                          <div className="chart-bar" style={{height: `${height}%`, backgroundColor: '#4e73df'}}></div>
+                        </div>
+                        <div className="chart-label">{day}</div>
                       </div>
-                      <div className="chart-label">{day}</div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -191,14 +177,7 @@ const Dashboard = () => {
             <div className="card-body">
               <h5 className="mb-4">Recent Activity Feed</h5>
               
-              <div className="activity-search mb-3">
-                <FaSearch className="search-icon" />
-                <input
-                  type="text"
-                  className="form-control form-control-sm"
-                  placeholder="Search activities..."
-                />
-              </div>
+              
 
               <div className="activity-list">
                 {activities.map((activity) => (

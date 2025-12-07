@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema({
     state: { type: String },
     zipCode: { type: String },
     country: { type: String},
+    role: { type: String, enum: ['admin', 'manager', 'cashier'], default: 'cashier' },
 });
 
 module.exports = mongoose.model("User",userSchema);
