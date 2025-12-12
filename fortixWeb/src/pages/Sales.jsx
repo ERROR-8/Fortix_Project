@@ -3,7 +3,7 @@ import axios from 'axios';
 import { FaShoppingCart, FaSearch, FaChartLine, FaStar, FaHistory } from 'react-icons/fa';
 
 const Sales = () => {
-  const [serialNumber, setSerialNumber] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [product, setProduct] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [message, setMessage] = useState('');
@@ -40,19 +40,34 @@ const Sales = () => {
   };
 
   const handleSearch = async () => {
-    if (!serialNumber) {
-      return setMessage('Please enter a serial number.');
-    }
+    if (!searchQuery) return setMessage('Please enter a serial number or product name.');
     setSearchLoading(true);
     setMessage('');
     setProduct(null);
     try {
-      const res = await axios.get(`/api/inventory/serial/${serialNumber}`);
-      setProduct(res.data);
+      // First try serial lookup
+      try {
+        const res = await axios.get(`/api/inventory/serial/${searchQuery}`);
+        setProduct(res.data);
+        setSearchLoading(false);
+        return;
+      } catch (err) {
+        // if serial lookup fails (404 or other), fall back to name search
+      }
+
+      const res = await axios.get('/api/inventory');
+      const list = res.data || [];
+      const match = list.find(item => item.productName && item.productName.toLowerCase().includes(searchQuery.toLowerCase()));
+      if (match) {
+        setProduct(match);
+      } else {
+        setProduct(null);
+        setMessage('Product not found.');
+      }
     } catch (err) {
       setProduct(null);
       setMessage('Product not found.');
-      console.error('Failed to fetch product by serial number', err);
+      console.error('Failed to fetch product', err);
     }
     setSearchLoading(false);
   };
@@ -72,7 +87,7 @@ const Sales = () => {
       const { updatedInventory } = res.data;
       setProduct(updatedInventory);
       setMessage(`Sale recorded. Sold ${qty} units. Remaining stock: ${updatedInventory.quantity}`);
-      setSerialNumber('');
+      setSearchQuery('');
       setQuantity(1);
       setProduct(null); // Clear product form
       fetchSalesData(); // Refresh sales data
@@ -170,15 +185,15 @@ const Sales = () => {
       <div className="card p-3 mb-4">
         <h5>Record a New Sale</h5>
         <div className="row g-2 align-items-end">
-          <div className="col-md-5">
-            <label className="form-label">Serial Number</label>
+          <div className="col-md-8">
+            <label className="form-label">Search (serial number or product name)</label>
             <div className="input-group">
               <input
                 type="text"
                 className="form-control"
-                value={serialNumber}
-                onChange={(e) => setSerialNumber(e.target.value)}
-                placeholder="Enter serial number"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Enter serial number or product name"
               />
               <button className="btn btn-primary" onClick={handleSearch} disabled={searchLoading}>
                 {searchLoading ? '...' : <FaSearch />}

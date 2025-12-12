@@ -29,8 +29,8 @@ const Users = () => {
         // Cashier cannot see users page - should be blocked by ProtectedRoute
         filteredData = [];
       } else if (currentUser?.role === 'manager') {
-        // Manager can only see cashier users
-        filteredData = filteredData.filter(u => u.role === 'cashier');
+        // Manager can see cashiers and other managers (but not admins)
+        filteredData = filteredData.filter(u => u.role === 'cashier' || u.role === 'manager');
       }
       // Admin can see all users
       
@@ -100,14 +100,18 @@ const Users = () => {
       const name = `${form.firstName} ${form.lastName}`.trim();
       if (editing) {
         // Update user (password optional)
-        const payload = { name, firstName: form.firstName, lastName: form.lastName, email: form.email, company: form.company, role: form.role };
+        // Managers are not allowed to change roles here; do not send role if current user is manager
+        const payload = { name, firstName: form.firstName, lastName: form.lastName, email: form.email, company: form.company };
         if (form.password) payload.password = form.password;
+        if (currentUser?.role !== 'manager') payload.role = form.role;
         const res = await axios.put(`/api/user/${editing}`, payload);
         const updated = res.data;
         setUsers(users.map(u => (u._id === updated._id ? updated : u)));
       } else {
         // Register new user
-        const res = await axios.post('/api/user/register', { name, firstName: form.firstName, lastName: form.lastName, email: form.email, password: form.password, company: form.company, role: form.role });
+        // If a manager creates a user, default role to 'cashier'
+        const createPayload = { name, firstName: form.firstName, lastName: form.lastName, email: form.email, password: form.password, company: form.company, role: currentUser?.role === 'manager' ? 'cashier' : form.role };
+        const res = await axios.post('/api/user/register', createPayload);
         const created = res.data;
         setUsers([created, ...users]);
       }
@@ -168,11 +172,12 @@ const Users = () => {
                 <input name="company" value={form.company} onChange={handleChange} className="form-control" placeholder="Company" />
               </div>
               <div className="col-md-1">
-                <select name="role" value={form.role} onChange={handleChange} className="form-control">
+                <select name="role" value={form.role} onChange={handleChange} className="form-control" disabled={currentUser?.role === 'manager'}>
                   <option value="cashier">Cashier</option>
                   <option value="manager">Manager</option>
                   {currentUser?.role === 'admin' && <option value="admin">Admin</option>}
                 </select>
+                {currentUser?.role === 'manager' && <small className="text-muted">Role locked for managers</small>}
               </div>
             </div>
             <div className="mt-2 d-flex gap-2">
