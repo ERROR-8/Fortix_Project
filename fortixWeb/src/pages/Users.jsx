@@ -1,57 +1,144 @@
-import React, { useState } from 'react';
-import { FaSearch, FaFilter, FaUserPlus, FaEdit, FaTrash } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaSearch, FaUserPlus, FaEdit, FaTrash } from 'react-icons/fa';
+import axios from 'axios';
 import './Users.css';
+import ConfirmModal from '../components/ConfirmModal';
+import { useAuth } from '../context/AuthContext';
 
 const Users = () => {
+  const { user: currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [users, setUsers] = useState([
-    {
-      id: 1,
-      name: 'John Doe',
-      username: '@johndoe',
-      email: 'john.doe@example.com',
-      role: 'Admin',
-      status: 'Active',
-      avatar: '👨‍💼'
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      username: '@janesmith',
-      email: 'jane.smith@example.com',
-      role: 'Editor',
-      status: 'Active',
-      avatar: '👩‍💼'
-    },
-    {
-      id: 3,
-      name: 'Sam Wilson',
-      username: '@samwilson',
-      email: 'sam.wilson@example.com',
-      role: 'Viewer',
-      status: 'Inactive',
-      avatar: '👨‍💻'
-    }
-  ]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '', company: '', role: 'cashier' });
 
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.username.toLowerCase().includes(searchTerm.toLowerCase())
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get('/api/user');
+      let filteredData = res.data || [];
+      
+      // Role-based filtering
+      if (currentUser?.role === 'cashier') {
+        // Cashier cannot see users page - should be blocked by ProtectedRoute
+        filteredData = [];
+      } else if (currentUser?.role === 'manager') {
+        // Manager can see cashiers and other managers (but not admins)
+        filteredData = filteredData.filter(u => u.role === 'cashier' || u.role === 'manager');
+      }
+      // Admin can see all users
+      
+      setUsers(filteredData);
+    } catch (err) {
+      console.error('Failed to fetch users', err);
+    }
+    setLoading(false);
+  };
+
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleAddClick = () => {
+    setEditing(null);
+    setForm({ firstName: '', lastName: '', email: '', password: '', company: '', role: 'cashier' });
+    setShowForm(true);
+  };
+
+  const handleEdit = (u) => {
+    const [firstName, ...rest] = (u.name || '').split(' ');
+    const lastName = rest.join(' ');
+    setEditing(u._id);
+    setForm({ firstName: firstName || u.firstName || '', lastName: lastName || u.lastName || '', email: u.email || '', password: '', company: u.company || '', role: u.role || 'cashier' });
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id) => {
+    // show modal (handled by requestDelete)
+    requestDelete(id);
+  };
+
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [toDeleteId, setToDeleteId] = useState(null);
+
+  const requestDelete = (id) => {
+    setToDeleteId(id);
+    setShowConfirm(true);
+  };
+
+  const onCancelDelete = () => {
+    setToDeleteId(null);
+    setShowConfirm(false);
+  };
+
+  const onConfirmDelete = async () => {
+    if (!toDeleteId) return onCancelDelete();
+    try {
+      const res = await axios.delete(`/api/user/${toDeleteId}`);
+      if (res.status === 200 || res.status === 204) {
+        setUsers(users.filter(u => u._id !== toDeleteId));
+      }
+    } catch (err) {
+      console.error('Delete failed', err);
+      alert('Delete failed');
+    }
+    setShowConfirm(false);
+    setToDeleteId(null);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.firstName || !form.email) {
+      alert('First name and email are required');
+      return;
+    }
+    try {
+      const name = `${form.firstName} ${form.lastName}`.trim();
+      if (editing) {
+        // Update user (password optional)
+        // Managers are not allowed to change roles here; do not send role if current user is manager
+        const payload = { name, firstName: form.firstName, lastName: form.lastName, email: form.email, company: form.company };
+        if (form.password) payload.password = form.password;
+        if (currentUser?.role !== 'manager') payload.role = form.role;
+        const res = await axios.put(`/api/user/${editing}`, payload);
+        const updated = res.data;
+        setUsers(users.map(u => (u._id === updated._id ? updated : u)));
+      } else {
+        // Register new user
+        // If a manager creates a user, default role to 'cashier'
+        const createPayload = { name, firstName: form.firstName, lastName: form.lastName, email: form.email, password: form.password, company: form.company, role: currentUser?.role === 'manager' ? 'cashier' : form.role };
+        const res = await axios.post('/api/user/register', createPayload);
+        const created = res.data;
+        setUsers([created, ...users]);
+      }
+      setShowForm(false);
+      setEditing(null);
+      setForm({ firstName: '', lastName: '', email: '', password: '', company: '', role: 'cashier' });
+    } catch (err) {
+      console.error('Save failed', err);
+      alert(err.response?.data?.message || 'Save failed');
+    }
+  };
+
+  const filteredUsers = users.filter(u =>
+    (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (u.email || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="users-page">
-      {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="mb-0">User List</h2>
-        <button className="btn btn-primary">
+        <button className="btn btn-primary" onClick={handleAddClick}>
           <FaUserPlus className="me-2" />
           Add New User
         </button>
       </div>
 
-      {/* Search and Filter */}
       <div className="d-flex gap-3 mb-4">
         <div className="search-box flex-grow-1">
           <FaSearch className="search-icon" />
@@ -63,62 +150,96 @@ const Users = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <button className="btn btn-outline-secondary">
-          <FaFilter className="me-2" />
-          Filter
-        </button>
       </div>
 
-      {/* Users Table */}
+      {showForm && (
+        <div className="card mb-4 p-3">
+          <form onSubmit={handleSubmit}>
+            <div className="row g-2">
+              <div className="col-md-2">
+                <input name="firstName" value={form.firstName} onChange={handleChange} className="form-control" placeholder="First name" />
+              </div>
+              <div className="col-md-2">
+                <input name="lastName" value={form.lastName} onChange={handleChange} className="form-control" placeholder="Last name" />
+              </div>
+              <div className="col-md-2">
+                <input name="email" value={form.email} onChange={handleChange} className="form-control" placeholder="Email" type="email" />
+              </div>
+              <div className="col-md-2">
+                <input name="password" value={form.password} onChange={handleChange} className="form-control" placeholder="Password (leave blank to keep)" type="password" />
+              </div>
+              <div className="col-md-1">
+                <input name="company" value={form.company} onChange={handleChange} className="form-control" placeholder="Company" />
+              </div>
+              <div className="col-md-1">
+                <select name="role" value={form.role} onChange={handleChange} className="form-control" disabled={currentUser?.role === 'manager'}>
+                  <option value="cashier">Cashier</option>
+                  <option value="manager">Manager</option>
+                  {currentUser?.role === 'admin' && <option value="admin">Admin</option>}
+                </select>
+                {currentUser?.role === 'manager' && <small className="text-muted">Role locked for managers</small>}
+              </div>
+            </div>
+            <div className="mt-2 d-flex gap-2">
+              <button className="btn btn-success" type="submit">{editing ? 'Update' : 'Create'}</button>
+              <button type="button" className="btn btn-secondary" onClick={() => { setShowForm(false); setEditing(null); }}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      )}
+
       <div className="card">
         <div className="card-body p-0">
-          <div className="table-responsive">
-            <table className="table table-hover mb-0">
-              <thead className="table-light">
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.map((user) => (
-                  <tr key={user.id}>
-                    <td>
-                      <div className="d-flex align-items-center">
-                        <div className="user-avatar me-3">
-                          {user.avatar}
-                        </div>
-                        <div>
-                          <div className="fw-medium">{user.name}</div>
-                          <small className="text-muted">{user.username}</small>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="align-middle">{user.email}</td>
-                    <td className="align-middle">{user.role}</td>
-                    <td className="align-middle">
-                      <span className={`badge ${user.status === 'Active' ? 'bg-success' : 'bg-warning text-dark'}`}>
-                        {user.status}
-                      </span>
-                    </td>
-                    <td className="align-middle">
-                      <button className="btn btn-sm btn-link text-primary p-1 me-2">
-                        <FaEdit />
-                      </button>
-                      <button className="btn btn-sm btn-link text-danger p-1">
-                        <FaTrash />
-                      </button>
-                    </td>
+          {loading ? (
+            <div className="p-3">Loading...</div>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-hover mb-0">
+                <thead className="table-light">
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Company</th>
+                    <th>Role</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filteredUsers.map((u) => (
+                    <tr key={u._id}>
+                      <td>
+                        <div className="d-flex align-items-center">
+                          <div className="user-avatar me-3">👤</div>
+                          <div>
+                            <div className="fw-medium">{u.firstName} {u.lastName}</div>
+                            
+                          </div>
+                        </div>
+                      </td>
+                      <td className="align-middle">{u.email}</td>
+                      <td className="align-middle">{u.company || '-'}</td>
+                      <td className="align-middle">
+                        <span className={`badge bg-${u.role === 'admin' ? 'danger' : u.role === 'manager' ? 'warning' : 'info'}`}>
+                          {u.role?.charAt(0).toUpperCase() + u.role?.slice(1)}
+                        </span>
+                      </td>
+                      <td className="align-middle">
+                        <button className="btn btn-sm btn-link text-primary p-1 me-2" onClick={() => handleEdit(u)}>
+                          <FaEdit />
+                        </button>
+                        <button className="btn btn-sm btn-link text-danger p-1" onClick={() => handleDelete(u._id)}>
+                          <FaTrash />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
+        <ConfirmModal show={showConfirm} title="Delete user" message="Are you sure you want to delete this user?" onConfirm={onConfirmDelete} onCancel={onCancelDelete} />
     </div>
   );
 };

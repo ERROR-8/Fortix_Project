@@ -11,10 +11,12 @@ import Stock from './pages/Stock';
 import Inventory from './pages/Inventory';
 import Users from './pages/Users';
 import Reports from './pages/Reports';
+import Sales from './pages/Sales';
 import Account from './pages/Account';
 import Help from './pages/Help';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
+import Home from './pages/Home';
 
 function App() {
   return (
@@ -33,12 +35,13 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <Routes>
-                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                    <Route path="/home" element={<Dashboard />} />
+                    <Route path="/" element={<Navigate to="/home" replace />} />
+                    <Route path="/home" element={<Home />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/stock" element={<Stock />} />
                     <Route path="/inventory" element={<Inventory />} />
-                    <Route path="/users" element={<Users />} />
+                    <Route path="/sales" element={<Sales />} />
+                    <Route path="/users" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><Users /></ProtectedRoute>} />
                     <Route path="/reports" element={<Reports />} />
                     <Route path="/account" element={<Account />} />
                     <Route path="/help" element={<Help />} />

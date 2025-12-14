@@ -1,59 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FaUser, 
   FaEnvelope, 
   FaPhone, 
   FaMapMarkerAlt, 
   FaBuilding,
-  FaEdit,
-  FaCamera,
-  FaBell,
-  FaLock,
-  FaGlobe,
-  FaPalette,
-  FaShieldAlt
+  FaLock
 } from 'react-icons/fa';
 import './Account.css';
+import { useAuth } from '../context/AuthContext';
 
 const Account = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [profileData, setProfileData] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@example.com',
-    phone: '+1 (555) 123-4567',
-    company: 'Fortix Inc.',
-    address: '123 Business Street',
-    city: 'New York',
-    state: 'NY',
-    zipCode: '10001',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    company: '',
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
     country: 'United States'
   });
 
-  const [notifications, setNotifications] = useState({
-    emailNotifications: true,
-    pushNotifications: true,
-    smsNotifications: false,
-    orderUpdates: true,
-    stockAlerts: true,
-    weeklyReports: true,
-    promotions: false
-  });
+  const { user, updateProfile } = useAuth();
 
-  const [preferences, setPreferences] = useState({
-    language: 'English',
-    timezone: 'America/New_York',
-    dateFormat: 'MM/DD/YYYY',
-    currency: 'USD',
-    theme: 'light'
-  });
+  useEffect(() => {
+    if (user) {
+      setProfileData(prev => ({
+        ...prev,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        company: user.company || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        city: user.city || '',
+        state: user.state || '',
+        zipCode: user.zipCode || '',
+        country: user.country || ''
+      }));
+    }
+  }, [user]);
 
-  const handleNotificationChange = (key) => {
-    setNotifications(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
-  };
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   return (
     <div className="account-page">
@@ -77,20 +71,7 @@ const Account = () => {
                   <FaLock className="me-2" />
                   Security
                 </button>
-                <button
-                  className={`account-tab ${activeTab === 'notifications' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('notifications')}
-                >
-                  <FaBell className="me-2" />
-                  Notifications
-                </button>
-                <button
-                  className={`account-tab ${activeTab === 'preferences' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('preferences')}
-                >
-                  <FaPalette className="me-2" />
-                  Preferences
-                </button>
+
               </div>
             </div>
           </div>
@@ -110,17 +91,10 @@ const Account = () => {
                     <div className="profile-avatar">
                       <FaUser />
                     </div>
-                    <button className="profile-picture-upload">
-                      <FaCamera />
-                    </button>
                   </div>
                   <div className="profile-picture-info">
                     <h5>{profileData.firstName} {profileData.lastName}</h5>
                     <p className="text-muted mb-2">{profileData.email}</p>
-                    <button className="btn btn-sm btn-outline-primary">
-                      <FaEdit className="me-2" />
-                      Change Photo
-                    </button>
                   </div>
                 </div>
 
@@ -245,18 +219,54 @@ const Account = () => {
                   </div>
                   <div className="col-12">
                     <label className="form-label">Country</label>
-                    <select className="form-select" value={profileData.country}>
-                      <option>United States</option>
-                      <option>Canada</option>
-                      <option>United Kingdom</option>
-                      <option>Australia</option>
-                    </select>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={profileData.country}
+                      onChange={(e) => setProfileData({...profileData, country: e.target.value})}
+                    />
                   </div>
                 </div>
 
                 <div className="d-flex justify-content-end gap-2">
-                  <button className="btn btn-outline-secondary">Cancel</button>
-                  <button className="btn btn-primary">Save Changes</button>
+                  <button className="btn btn-outline-secondary" onClick={() => {
+                    // reset to user values
+                    if (user) {
+                      setProfileData(prev => ({
+                        ...prev,
+                        firstName: user.firstName || '',
+                        lastName: user.lastName || '',
+                        email: user.email || '',
+                        company: user.company || '',
+                        phone: user.phone || '',
+                        address: user.address || '',
+                        city: user.city || '',
+                        state: user.state || '',
+                        zipCode: user.zipCode || '',
+                        country: user.country || 'United States'
+                      }));
+                    }
+                  }}>Cancel</button>
+                  <button className="btn btn-primary" onClick={async () => {
+                    // perform update
+                    const name = `${profileData.firstName} ${profileData.lastName}`.trim();
+                    const updates = { 
+                      name, 
+                      email: profileData.email, 
+                      company: profileData.company,
+                      firstName: profileData.firstName,
+                      lastName: profileData.lastName,
+                      phone: profileData.phone,
+                      address: profileData.address,
+                      city: profileData.city,
+                      state: profileData.state,
+                      zipCode: profileData.zipCode,
+                      country: profileData.country
+                    };
+                    const result = await updateProfile(user?._id, updates);
+                    if (!result.success) alert(result.error || 'Update failed');
+                    else alert('Profile updated');
+                  }}>Save Changes</button>
                 </div>
               </div>
             </div>
@@ -274,320 +284,33 @@ const Account = () => {
                   <div className="row g-3">
                     <div className="col-12">
                       <label className="form-label">Current Password</label>
-                      <input type="password" className="form-control" placeholder="Enter current password" />
+                      <input value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} type="password" className="form-control" placeholder="Enter current password" />
                     </div>
                     <div className="col-md-6">
                       <label className="form-label">New Password</label>
-                      <input type="password" className="form-control" placeholder="Enter new password" />
+                      <input value={newPassword} onChange={(e) => setNewPassword(e.target.value)} type="password" className="form-control" placeholder="Enter new password" />
                     </div>
                     <div className="col-md-6">
                       <label className="form-label">Confirm New Password</label>
-                      <input type="password" className="form-control" placeholder="Confirm new password" />
+                      <input value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} type="password" className="form-control" placeholder="Confirm new password" />
                     </div>
                     <div className="col-12">
-                      <button className="btn btn-primary">Update Password</button>
+                      <button className="btn btn-primary" onClick={async () => {
+                        if (!newPassword) return alert('Enter new password');
+                        if (newPassword !== confirmPassword) return alert('Passwords do not match');
+                        // Note: backend does not verify current password here — it will simply update
+                        const result = await updateProfile(user?._id, { password: newPassword });
+                        if (!result.success) alert(result.error || 'Password update failed');
+                        else {
+                          setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+                          alert('Password updated');
+                        }
+                      }}>Update Password</button>
                     </div>
                   </div>
                 </div>
 
-                <hr className="my-4" />
 
-                {/* Two-Factor Authentication */}
-                <div className="security-section mb-4">
-                  <div className="d-flex justify-content-between align-items-start mb-3">
-                    <div>
-                      <h5 className="mb-1">Two-Factor Authentication</h5>
-                      <p className="text-muted mb-0">Add an extra layer of security to your account</p>
-                    </div>
-                    <div className="form-check form-switch">
-                      <input className="form-check-input" type="checkbox" id="twoFactorSwitch" />
-                    </div>
-                  </div>
-                  <div className="alert alert-info">
-                    <FaShieldAlt className="me-2" />
-                    Two-factor authentication is currently disabled. Enable it for enhanced security.
-                  </div>
-                </div>
-
-                <hr className="my-4" />
-
-                {/* Active Sessions */}
-                <div className="security-section">
-                  <h5 className="mb-3">Active Sessions</h5>
-                  <div className="session-list">
-                    <div className="session-item">
-                      <div className="session-info">
-                        <div className="fw-medium">Chrome on Windows</div>
-                        <small className="text-muted">New York, USA • Active now</small>
-                      </div>
-                      <span className="badge bg-success">Current</span>
-                    </div>
-                    <div className="session-item">
-                      <div className="session-info">
-                        <div className="fw-medium">Safari on iPhone</div>
-                        <small className="text-muted">New York, USA • 2 hours ago</small>
-                      </div>
-                      <button className="btn btn-sm btn-outline-danger">Revoke</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Notifications Tab */}
-          {activeTab === 'notifications' && (
-            <div className="card">
-              <div className="card-body">
-                <h4 className="mb-4">Notification Preferences</h4>
-
-                {/* Notification Channels */}
-                <div className="notification-section mb-4">
-                  <h5 className="mb-3">Notification Channels</h5>
-                  <div className="notification-option">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div>
-                        <div className="fw-medium">Email Notifications</div>
-                        <small className="text-muted">Receive notifications via email</small>
-                      </div>
-                      <div className="form-check form-switch">
-                        <input
-                          className="form-check-input"
-                          type="checkbox"
-                          checked={notifications.emailNotifications}
-                          onChange={() => handleNotificationChange('emailNotifications')}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="notification-option">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div>
-                        <div className="fw-medium">Push Notifications</div>
-                        <small className="text-muted">Receive push notifications in your browser</small>
-                      </div>
-                      <div className="form-check form-switch">
-                        <input
-                          className="form-check-input"
-                          type="checkbox"
-                          checked={notifications.pushNotifications}
-                          onChange={() => handleNotificationChange('pushNotifications')}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="notification-option">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div>
-                        <div className="fw-medium">SMS Notifications</div>
-                        <small className="text-muted">Receive notifications via text message</small>
-                      </div>
-                      <div className="form-check form-switch">
-                        <input
-                          className="form-check-input"
-                          type="checkbox"
-                          checked={notifications.smsNotifications}
-                          onChange={() => handleNotificationChange('smsNotifications')}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <hr className="my-4" />
-
-                {/* Notification Types */}
-                <div className="notification-section">
-                  <h5 className="mb-3">Notification Types</h5>
-                  <div className="notification-option">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div>
-                        <div className="fw-medium">Order Updates</div>
-                        <small className="text-muted">Get notified about order status changes</small>
-                      </div>
-                      <div className="form-check form-switch">
-                        <input
-                          className="form-check-input"
-                          type="checkbox"
-                          checked={notifications.orderUpdates}
-                          onChange={() => handleNotificationChange('orderUpdates')}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="notification-option">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div>
-                        <div className="fw-medium">Stock Alerts</div>
-                        <small className="text-muted">Receive alerts for low stock items</small>
-                      </div>
-                      <div className="form-check form-switch">
-                        <input
-                          className="form-check-input"
-                          type="checkbox"
-                          checked={notifications.stockAlerts}
-                          onChange={() => handleNotificationChange('stockAlerts')}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="notification-option">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div>
-                        <div className="fw-medium">Weekly Reports</div>
-                        <small className="text-muted">Get weekly summary reports</small>
-                      </div>
-                      <div className="form-check form-switch">
-                        <input
-                          className="form-check-input"
-                          type="checkbox"
-                          checked={notifications.weeklyReports}
-                          onChange={() => handleNotificationChange('weeklyReports')}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="notification-option">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div>
-                        <div className="fw-medium">Promotions & Updates</div>
-                        <small className="text-muted">Receive promotional content and product updates</small>
-                      </div>
-                      <div className="form-check form-switch">
-                        <input
-                          className="form-check-input"
-                          type="checkbox"
-                          checked={notifications.promotions}
-                          onChange={() => handleNotificationChange('promotions')}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <hr className="my-4" />
-
-                <div className="d-flex justify-content-end">
-                  <button className="btn btn-primary">Save Preferences</button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Preferences Tab */}
-          {activeTab === 'preferences' && (
-            <div className="card">
-              <div className="card-body">
-                <h4 className="mb-4">Application Preferences</h4>
-
-                {/* Localization */}
-                <div className="preference-section mb-4">
-                  <h5 className="mb-3">Localization</h5>
-                  <div className="row g-3">
-                    <div className="col-md-6">
-                      <label className="form-label">
-                        <FaGlobe className="me-2" />
-                        Language
-                      </label>
-                      <select className="form-select" value={preferences.language}>
-                        <option>English</option>
-                        <option>Spanish</option>
-                        <option>French</option>
-                        <option>German</option>
-                      </select>
-                    </div>
-                    <div className="col-md-6">
-                      <label className="form-label">Timezone</label>
-                      <select className="form-select" value={preferences.timezone}>
-                        <option>America/New_York (EST)</option>
-                        <option>America/Los_Angeles (PST)</option>
-                        <option>Europe/London (GMT)</option>
-                        <option>Asia/Tokyo (JST)</option>
-                      </select>
-                    </div>
-                    <div className="col-md-6">
-                      <label className="form-label">Date Format</label>
-                      <select className="form-select" value={preferences.dateFormat}>
-                        <option>MM/DD/YYYY</option>
-                        <option>DD/MM/YYYY</option>
-                        <option>YYYY-MM-DD</option>
-                      </select>
-                    </div>
-                    <div className="col-md-6">
-                      <label className="form-label">Currency</label>
-                      <select className="form-select" value={preferences.currency}>
-                        <option>USD - US Dollar</option>
-                        <option>EUR - Euro</option>
-                        <option>GBP - British Pound</option>
-                        <option>JPY - Japanese Yen</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <hr className="my-4" />
-
-                {/* Appearance */}
-                <div className="preference-section mb-4">
-                  <h5 className="mb-3">Appearance</h5>
-                  <label className="form-label">Theme</label>
-                  <div className="theme-options">
-                    <div className="theme-option">
-                      <input
-                        type="radio"
-                        name="theme"
-                        id="light"
-                        checked={preferences.theme === 'light'}
-                        onChange={() => setPreferences({...preferences, theme: 'light'})}
-                      />
-                      <label htmlFor="light" className="theme-card">
-                        <div className="theme-preview light-theme">
-                          <div className="theme-header"></div>
-                          <div className="theme-content"></div>
-                        </div>
-                        <div className="theme-name">Light</div>
-                      </label>
-                    </div>
-                    <div className="theme-option">
-                      <input
-                        type="radio"
-                        name="theme"
-                        id="dark"
-                        checked={preferences.theme === 'dark'}
-                        onChange={() => setPreferences({...preferences, theme: 'dark'})}
-                      />
-                      <label htmlFor="dark" className="theme-card">
-                        <div className="theme-preview dark-theme">
-                          <div className="theme-header"></div>
-                          <div className="theme-content"></div>
-                        </div>
-                        <div className="theme-name">Dark</div>
-                      </label>
-                    </div>
-                    <div className="theme-option">
-                      <input
-                        type="radio"
-                        name="theme"
-                        id="auto"
-                        checked={preferences.theme === 'auto'}
-                        onChange={() => setPreferences({...preferences, theme: 'auto'})}
-                      />
-                      <label htmlFor="auto" className="theme-card">
-                        <div className="theme-preview auto-theme">
-                          <div className="theme-header"></div>
-                          <div className="theme-content"></div>
-                        </div>
-                        <div className="theme-name">Auto</div>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <hr className="my-4" />
-
-                <div className="d-flex justify-content-end">
-                  <button className="btn btn-primary">Save Preferences</button>
-                </div>
               </div>
             </div>
           )}

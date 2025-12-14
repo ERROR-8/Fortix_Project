@@ -35,3 +35,15 @@ exports.deleteInventory = async(req,res) => {
         res.json(err);
     }
 };
+
+exports.getInventoryBySerialNumber = async (req, res) => {
+  try {
+    const inventory = await Inventory.findOne({ serialNumber: req.params.serialNumber });
+    if (!inventory) {
+      return res.status(404).json({ message: 'Inventory not found' });
+    }
+    res.json(inventory);
+  } catch (err) {
+    res.json(err);
+  }
+};

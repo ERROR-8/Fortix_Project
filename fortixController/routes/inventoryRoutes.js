@@ -6,5 +6,6 @@ router.post("/",ictrl.createInventory);
 router.get("/",ictrl.getInventory);
 router.put("/:id",ictrl.updateInventory);
 router.delete("/:id",ictrl.deleteInventory);
+router.get("/serial/:serialNumber", ictrl.getInventoryBySerialNumber);
 
 module.exports = router;
